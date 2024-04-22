@@ -78,6 +78,9 @@ app.get('/', (req, res) => {
                             button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                             saveButtonState(button.id); // Save the button state
                             sendFetchCommand(command1); // Send the first command
+                            if(button.id === 'button1'){
+                                sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
+                            }
                         }
                     }
                     
