@@ -25,6 +25,21 @@ app.post('/send-command', (req, res) => {
     });
 });
 
+
+app.post('/send-videocommand', (req, res) => {
+    const { command } = req.body;
+    
+    exec(`${command}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing command: ${error.message}`);
+            res.status(500).json({ error: 'Command execution failed' });
+            return;
+        }        
+        console.log(`Command output: ${stdout}`);
+        res.json({ success: true });
+    });
+});
+
 app.listen(port, () => {
     console.log(`Web app running at http://localhost:${port}`);
 });
