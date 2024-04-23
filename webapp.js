@@ -27,6 +27,20 @@ app.post('/send-command', (req, res) => {
 });
 
 
+app.post('/grep-command', (req, res) => {
+    const { command } = req.body;
+    
+    exec(`${command}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing command: ${error.message}`);
+            res.status(500).json({ error: 'Command execution failed' });
+            return;
+        }
+        
+        res.json({ success: true, output: stdout });
+    });
+});
+
 app.post('/send-videocommand', (req, res) => {
     const { command } = req.body;
     

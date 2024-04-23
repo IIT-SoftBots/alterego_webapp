@@ -1,82 +1,108 @@
 <html>
-    <head>
-        <title>GOLDEN EGO Connection</title>
-        <style>
-            .button-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
+
+<head>
+    <title>GOLDEN EGO Connection</title>
+    <style>
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .button {
+            height: 100px;
+            width: 400px;
+            margin-bottom: 25px;
+            font-size: 25px;
+            /* Increase the font size */
+            background-color: grey;
+            /* Set the initial background color */
+            border-radius: 50px;
+            /* Make the buttons round */
+        }
+
+        .button.clicked {
+            background-color: green;
+            /* Set the background color when clicked */
+        }
+
+        .title {
+            text-align: center;
+            /* Center align the title */
+        }
+
+        body {
+            background-image: url('/goldenego.jpeg');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="title">GUI</h1>
+    <div class="button-container">
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
+            id="button1">ROSCORE</button>
+        <button class="button"
+            onclick="sendVideoCommand('cd ~/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg')"
+            id="button2">Video</button>
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill  /robot_goldenego/imu/Sensor  /robot_goldenego/imu/qb_interface_imu_node /robot_goldenego/alterego_state_publisher')"
+            id="button3">IMU</button>
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/left/qb_manager /robot_goldenego/right/qb_manager')"
+            id="button4">Body Activation</button>
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/right/arm_inv_dyn /robot_goldenego/left/arm_inv_dyn /robot_goldenego/head/head_inv_kin /robot_goldenego/left/arm_inv_kin_main /robot_goldenego/pitch_correction /robot_goldenego/right/arm_inv_kin_main')"
+            id="button5">Body Movement</button>
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot pilot.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/inbound_data /robot_goldenego/socket')"
+            id="button6">Pilot Communication</button>
+        <button class="button"
+            onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/wheels/lqr /robot_goldenego/wheels/system_check /robot_goldenego/wheels/qb_interface_node')"
+            id="button7">Wheels</button>
+    </div>
+    <div style="position: absolute; top: 1200px; right: 10px;">
+        <button class="button" onclick="openSettings()" style="height: 50px; width: 200px;">Settings</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Check if the button was previously clicked and update its state
+        function updateButtonState(buttonId) {
+            const button = document.getElementById(buttonId);
+            const clicked = localStorage.getItem(buttonId);
+            if (clicked === 'true') {
+                button.classList.add('clicked');
             }
-            .button {
-                height: 100px;
-                width: 400px;
-                margin-bottom: 25px;
-                font-size: 25px; /* Increase the font size */
-                background-color: grey; /* Set the initial background color */
-            }
-            .button.clicked {
-                background-color: green; /* Set the background color when clicked */
-            }
-            .title {
-                text-align: center; /* Center align the title */
-            }
-            body {
-                background-image: url('/background.jpeg');
-                background-repeat: no-repeat;
-                background-attachment: fixed;
-                background-size: cover;
-                
-            }
-        </style>
-    </head>
-    <body>
-        <h1 class="title">GOLDEN EGO</h1>
-        <div class="button-container">
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && roscore', 'killall -9 rosmaster')" id="button1">ROSCORE</button>
-            <button class="button" onclick="sendVideoCommand('cd ~/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg')" id="button2">Video</button>
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill  /robot_goldenego/imu/Sensor  /robot_goldenego/imu/qb_interface_imu_node /robot_goldenego/alterego_state_publisher')" id="button3">IMU</button>
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/left/qb_manager /robot_goldenego/right/qb_manager')" id="button4">Body Activation</button>
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/right/arm_inv_dyn /robot_goldenego/left/arm_inv_dyn /robot_goldenego/head/head_inv_kin /robot_goldenego/left/arm_inv_kin_main /robot_goldenego/pitch_correction /robot_goldenego/right/arm_inv_kin_main')" id="button5">Body Movement</button>
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot pilot.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/inbound_data /robot_goldenego/socket')" id="button6">Pilot Communication</button>
-            <button class="button" onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/wheels/lqr /robot_goldenego/wheels/system_check /robot_goldenego/wheels/qb_interface_node')" id="button7">Wheels</button>
-        </div>
-        <div style="position: absolute; top: 1200px; right: 10px;">
-            <button class="button" onclick="openSettings()" style="height: 50px; width: 200px;">Settings</button>
-        </div>
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <script>
-            // Check if the button was previously clicked and update its state
-            function updateButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                const clicked = localStorage.getItem(buttonId);
-                if (clicked === 'true') {
-                    button.classList.add('clicked');
-                }
-            }
-            
-            // Save the button state when clicked
-            function saveButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                const clicked = button.classList.contains('clicked');
-                localStorage.setItem(buttonId, clicked);
-            }
-            
-            // Reset the button state when clicked again
-            function resetButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                button.classList.remove('clicked');
-                localStorage.removeItem(buttonId);
-            }
-            
-            // Ping a remote computer
-            function pingRemoteComputer() {
-                return fetch('/ping', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ ip: '192.168.0.50' })
-                })
+        }
+
+        // Save the button state when clicked
+        function saveButtonState(buttonId) {
+            const button = document.getElementById(buttonId);
+            const clicked = button.classList.contains('clicked');
+            localStorage.setItem(buttonId, clicked);
+        }
+
+        // Reset the button state when clicked again
+        function resetButtonState(buttonId) {
+            const button = document.getElementById(buttonId);
+            button.classList.remove('clicked');
+            localStorage.removeItem(buttonId);
+        }
+
+        // Ping a remote computer
+        function pingRemoteComputer() {
+            return fetch('/ping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: '192.168.0.50' })
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log('Ping successful:', data.success);
@@ -86,24 +112,51 @@
                     console.log('Ping failed:', error);
                     return false;
                 });
-            }
+        }
 
-            // Send command and update button state
-            async function sendCommand(command1, command2) {
-                const button = event.target;
-                if (button.classList.contains('clicked')) {
-                    resetButtonState(button.id); // Reset the button state
-                    sendFetchCommand(command2); // Send the second command
-                } else {
-                    const isRemoteComputerOnline = await pingRemoteComputer();
-                    if (isRemoteComputerOnline) {
-                        button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                        saveButtonState(button.id); // Save the button state
-                        sendFetchCommand(command1); // Send the first command
-                        if(button.id === 'button1'){
-                            sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
-                        }
-                        if(button.id === 'button3'){
+        async function checkIMUConnected() {
+            // CHECK IMU CONNECTED
+            const user_nuc = 'goldenego-base';
+            const ip_nuc = '192.168.0.50';
+            const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
+            const response = await fetch('/grep-command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ command: sshCommand })
+            });
+            const data = await response.json();
+
+            console.log(data);
+
+            const x = data.output; // The result of the SSH command
+            // Extract the number of IMUs connected
+            const numIMUs = parseInt(x.match(/\d+/)[0]);
+            console.log(numIMUs);
+            // If the number of IMUs connected is 3, change the button color to green
+            if (numIMUs == 3) {
+                button.style.backgroundColor = 'grey';
+                Swal.fire('ERROR', 'IMU not Connected', 'error');
+            }
+        }
+
+        // Send command and update button state
+        async function sendCommand(command1, command2) {
+            const button = event.target;
+            if (button.classList.contains('clicked')) {
+                resetButtonState(button.id); // Reset the button state
+                sendFetchCommand(command2); // Send the second command
+            } else {
+                const isRemoteComputerOnline = await pingRemoteComputer();
+                if (isRemoteComputerOnline) {
+                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                    saveButtonState(button.id); // Save the button state
+                    sendFetchCommand(command1); // Send the first command
+                    if (button.id === 'button1') {
+                        sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
+                    }
+                    if (button.id === 'button3') {
                         // Display a popup immediately
                         let timerInterval;
                         Swal.fire({
@@ -124,34 +177,40 @@
                                 console.log('I was closed by the timer')
                             }
                         })
+                        // And a timer duration in milliseconds
+                        var timerDuration = 5000; // 5 seconds for example
+
+                        // You can start the check after the timer ends like this
+                        setTimeout(checkIMUConnected, timerDuration);
+
                     }
-                    } else {
-                        Swal.fire('ERROR', 'Base Not Connected', 'error'); //warning error success info question
-                    }
-                }
-            }
-            // Send command and update button state
-            function sendVideoCommand(command1, command2) {
-                const button = event.target;
-                if (button.classList.contains('clicked')) {
-                    resetButtonState(button.id); // Reset the button state
-                    sendFetchVideoCommand(command2); // Send the second command
                 } else {
-                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                    saveButtonState(button.id); // Save the button state
-                    sendFetchVideoCommand(command1); // Send the first command
+                    Swal.fire('ERROR', 'Base Not Connected', 'error'); //warning error success info question
                 }
             }
+        }
+        // Send command and update button state
+        function sendVideoCommand(command1, command2) {
+            const button = event.target;
+            if (button.classList.contains('clicked')) {
+                resetButtonState(button.id); // Reset the button state
+                sendFetchVideoCommand(command2); // Send the second command
+            } else {
+                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                saveButtonState(button.id); // Save the button state
+                sendFetchVideoCommand(command1); // Send the first command
+            }
+        }
 
-            // Function to send command using fetch
-            function sendFetchCommand(command) {
-                fetch('/send-command', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ command })
-                })
+        // Function to send command using fetch
+        function sendFetchCommand(command) {
+            fetch('/send-command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ command })
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -161,18 +220,18 @@
                     console.error('Error:', error);
                     // Handle any errors that occurred during the request
                 });
-            }
-            
+        }
 
-            // Function to send command using fetch
-            function sendFetchVideoCommand(command) {
-                fetch('/send-videocommand', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ command })
-                })
+
+        // Function to send command using fetch
+        function sendFetchVideoCommand(command) {
+            fetch('/send-videocommand', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ command })
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -182,52 +241,53 @@
                     console.error('Error:', error);
                     // Handle any errors that occurred during the request
                 });
-            }
+        }
 
-            // Update button states on page load
-            window.addEventListener('load', () => {
-                updateButtonState('button1');
-                // Initialize button4 as disabled
-                document.getElementById('button6').disabled = true;
-                // Enable button6 when button1 is clicked
-                document.getElementById('button1').addEventListener('click', function() {
-                    var button6 = document.getElementById('button6');
-                    button6.disabled = !button6.disabled;
-                });
-
-                // Initialize button4 as disabled
-                document.getElementById('button4').disabled = true;
-                // Enable button4 when button1 is clicked
-                document.getElementById('button1').addEventListener('click', function() {
-                    var button4 = document.getElementById('button4');
-                    button4.disabled = !button4.disabled;
-                });
-
-                // Initialize button3 as disabled
-                document.getElementById('button3').disabled = true;
-                // Enable button3 when button1 is clicked
-                document.getElementById('button1').addEventListener('click', function() {
-                    var button3 = document.getElementById('button3');
-                    button3.disabled = !button3.disabled;
-                });
-
-
-                // Initialize button5 as disabled
-                document.getElementById('button5').disabled = true;
-                // Enable button7 when button4 is clicked
-                document.getElementById('button4').addEventListener('click', function() {
-                    var button5 = document.getElementById('button5');
-                    button5.disabled = !button5.disabled;
-                });
-
-                // Initialize button7 as disabled
-                document.getElementById('button7').disabled = true;
-                // Enable button7 when button3 is clicked
-                document.getElementById('button3').addEventListener('click', function() {
-                    var button7 = document.getElementById('button7');
-                    button7.disabled = !button7.disabled;
-                });
+        // Update button states on page load
+        window.addEventListener('load', () => {
+            updateButtonState('button1');
+            // Initialize button4 as disabled
+            document.getElementById('button6').disabled = true;
+            // Enable button6 when button1 is clicked
+            document.getElementById('button1').addEventListener('click', function () {
+                var button6 = document.getElementById('button6');
+                button6.disabled = !button6.disabled;
             });
-        </script>
-    </body>
+
+            // Initialize button4 as disabled
+            document.getElementById('button4').disabled = true;
+            // Enable button4 when button1 is clicked
+            document.getElementById('button1').addEventListener('click', function () {
+                var button4 = document.getElementById('button4');
+                button4.disabled = !button4.disabled;
+            });
+
+            // Initialize button3 as disabled
+            document.getElementById('button3').disabled = true;
+            // Enable button3 when button1 is clicked
+            document.getElementById('button1').addEventListener('click', function () {
+                var button3 = document.getElementById('button3');
+                button3.disabled = !button3.disabled;
+            });
+
+
+            // Initialize button5 as disabled
+            document.getElementById('button5').disabled = true;
+            // Enable button7 when button4 is clicked
+            document.getElementById('button4').addEventListener('click', function () {
+                var button5 = document.getElementById('button5');
+                button5.disabled = !button5.disabled;
+            });
+
+            // Initialize button7 as disabled
+            document.getElementById('button7').disabled = true;
+            // Enable button7 when button3 is clicked
+            document.getElementById('button3').addEventListener('click', function () {
+                var button7 = document.getElementById('button7');
+                button7.disabled = !button7.disabled;
+            });
+        });
+    </script>
+</body>
+
 </html>
