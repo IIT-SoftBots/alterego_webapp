@@ -10,7 +10,7 @@
             .button {
                 height: 100px;
                 width: 400px;
-                margin-bottom: 50px;
+                margin-bottom: 25px;
                 font-size: 25px; /* Increase the font size */
                 background-color: grey; /* Set the initial background color */
             }
@@ -21,10 +21,11 @@
                 text-align: center; /* Center align the title */
             }
             body {
-                background-image: url('path-to-your-image.jpg');
+                background-image: url('/background.jpeg');
                 background-repeat: no-repeat;
                 background-attachment: fixed;
                 background-size: cover;
+                
             }
         </style>
     </head>
@@ -69,9 +70,22 @@
             
             // Ping a remote computer
             function pingRemoteComputer() {
-                return fetch('192.168.0.50')
-                    .then(response => response.ok)
-                    .catch(() => false);
+                return fetch('/ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ip: '192.168.0.50' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Ping successful:', data.success);
+                    return data.success;
+                })
+                .catch(error => {
+                    console.log('Ping failed:', error);
+                    return false;
+                });
             }
 
             // Send command and update button state
@@ -89,6 +103,28 @@
                         if(button.id === 'button1'){
                             sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
                         }
+                        if(button.id === 'button3'){
+                        // Display a popup immediately
+                        let timerInterval;
+                        Swal.fire({
+                            title: 'Calibration. . .',
+                            html: 'Wait for 5 seconds',
+                            timer: 5000,
+                            timerProgressBar: true,
+                            didOpen: () => {
+                                Swal.showLoading()
+                                timerInterval = setInterval(() => {
+                                }, 100)
+                            },
+                            willClose: () => {
+                                clearInterval(timerInterval)
+                            }
+                        }).then((result) => {
+                            if (result.dismiss === Swal.DismissReason.timer) {
+                                console.log('I was closed by the timer')
+                            }
+                        })
+                    }
                     } else {
                         Swal.fire('ERROR', 'Base Not Connected', 'error'); //warning error success info question
                     }
@@ -151,12 +187,46 @@
             // Update button states on page load
             window.addEventListener('load', () => {
                 updateButtonState('button1');
-                updateButtonState('button2');
-                updateButtonState('button3');
-                updateButtonState('button4');
-                updateButtonState('button5');
-                updateButtonState('button6');
-                updateButtonState('button7');
+                // Initialize button4 as disabled
+                document.getElementById('button6').disabled = true;
+                // Enable button6 when button1 is clicked
+                document.getElementById('button1').addEventListener('click', function() {
+                    var button6 = document.getElementById('button6');
+                    button6.disabled = !button6.disabled;
+                });
+
+                // Initialize button4 as disabled
+                document.getElementById('button4').disabled = true;
+                // Enable button4 when button1 is clicked
+                document.getElementById('button1').addEventListener('click', function() {
+                    var button4 = document.getElementById('button4');
+                    button4.disabled = !button4.disabled;
+                });
+
+                // Initialize button3 as disabled
+                document.getElementById('button3').disabled = true;
+                // Enable button3 when button1 is clicked
+                document.getElementById('button1').addEventListener('click', function() {
+                    var button3 = document.getElementById('button3');
+                    button3.disabled = !button3.disabled;
+                });
+
+
+                // Initialize button5 as disabled
+                document.getElementById('button5').disabled = true;
+                // Enable button7 when button4 is clicked
+                document.getElementById('button4').addEventListener('click', function() {
+                    var button5 = document.getElementById('button5');
+                    button5.disabled = !button5.disabled;
+                });
+
+                // Initialize button7 as disabled
+                document.getElementById('button7').disabled = true;
+                // Enable button7 when button3 is clicked
+                document.getElementById('button3').addEventListener('click', function() {
+                    var button7 = document.getElementById('button7');
+                    button7.disabled = !button7.disabled;
+                });
             });
         </script>
     </body>
