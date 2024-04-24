@@ -15,14 +15,14 @@
             margin-bottom: 25px;
             font-size: 25px;
             /* Increase the font size */
-            background-color: grey;
+            background-color: rgb(151, 134, 97);
             /* Set the initial background color */
             border-radius: 50px;
             /* Make the buttons round */
         }
 
         .button.clicked {
-            background-color: green;
+            background-color: rgb(244, 247, 218);
             /* Set the background color when clicked */
         }
 
@@ -42,7 +42,7 @@
 </head>
 
 <body>
-    <h1 class="title">GUI</h1>
+    <h1 class="title">AlterEgo GUI</h1>
     <div class="button-container">
         <button class="button"
             onclick="sendCommand('source /opt/ros/noetic/setup.bash && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
@@ -114,78 +114,256 @@
                 });
         }
 
-        async function checkIMUConnected() {
-            // CHECK IMU CONNECTED
-            const user_nuc = 'goldenego-base';
-            const ip_nuc = '192.168.0.50';
-            const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
-            const response = await fetch('/grep-command', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ command: sshCommand })
-            });
-            const data = await response.json();
-
-            console.log(data);
-
-            const x = data.output; // The result of the SSH command
-            // Extract the number of IMUs connected
-            const numIMUs = parseInt(x.match(/\d+/)[0]);
-            console.log(numIMUs);
-            // If the number of IMUs connected is 3, change the button color to green
-            if (numIMUs == 3) {
-                button.style.backgroundColor = 'grey';
-                Swal.fire('ERROR', 'IMU not Connected', 'error');
-            }
-        }
+        
 
         // Send command and update button state
         async function sendCommand(command1, command2) {
             const button = event.target;
             if (button.classList.contains('clicked')) {
-                resetButtonState(button.id); // Reset the button state
-                sendFetchCommand(command2); // Send the second command
-            } else {
+                if(button.id === 'button1')
+                {
+                    const buttons = document.querySelectorAll('.clicked');
+                    if (buttons.length > 1 ) {
+                        Swal.fire('ERROR', 'CLOSE ALL THE COMMANDS FIRST', 'error');
+                    }
+                    else {
+                        
+                        resetButtonState(button.id); // Reset the button state
+                        sendFetchCommand(command2); // Send the second command
+                        console.log('Closing the roscore');
+                    }
+                }
+                else if(button.id === 'button3')
+                {
+                    //get button7 state
+                    const button7 = document.getElementById('button7');
+                    if (button7.classList.contains('clicked')) {
+                        Swal.fire('ERROR', 'CLOSE THE WHEELS FIRST', 'error');
+                    }
+                    else {
+                        resetButtonState(button.id); // Reset the button state
+                        sendFetchCommand(command2); // Send the second command
+                    }
+
+                }
+                else if(button.id === 'button4')
+                {
+                    //get button5 state
+                    const button5 = document.getElementById('button5');
+                    if (button5.classList.contains('clicked')) {
+                        Swal.fire('ERROR', 'Close the body movement first', 'error');
+                    }
+                    else {
+                        resetButtonState(button.id); // Reset the button state
+                        sendFetchCommand(command2); // Send the second command
+                    }
+                }
+                else if(button.id === 'button6')
+                {
+                    resetButtonState(button.id); // Reset the button state
+                    sendFetchCommand(command2); // Send the second command
+                }
+                else if(button.id === 'button7'){
+                    const { value: accept } = await Swal.fire({
+                                title: 'Are you sure?',
+                                text: "Put AlterEGO on the cart!",
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#3085d6',
+                                cancelButtonColor: '#d33',
+                                confirmButtonText: 'Yes, I am sure!'
+                            })
+                            if (accept) {
+                                resetButtonState(button.id); // Reset the button state
+                                sendFetchCommand(command2); // Send the second command
+                            }
+                }
+                else {
+                    resetButtonState(button.id); // Reset the button state
+                    sendFetchCommand(command2); // Send the second command
+                }
+
+                
+            } 
+            else {
                 const isRemoteComputerOnline = await pingRemoteComputer();
                 if (isRemoteComputerOnline) {
-                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                    saveButtonState(button.id); // Save the button state
-                    sendFetchCommand(command1); // Send the first command
+                    
+                    const button1 = document.getElementById('button1');
                     if (button.id === 'button1') {
-                        sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
+                            button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                            sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');                        
+                            saveButtonState(button.id); // Save the button state
+                            sendFetchCommand(command1); // Send the first command
+                        }
+                    else if (!button1.classList.contains('clicked')) {
+                            Swal.fire('ERROR', 'Turn on the ROSCORE', 'error');
                     }
-                    if (button.id === 'button3') {
-                        // Display a popup immediately
-                        let timerInterval;
-                        Swal.fire({
-                            title: 'Calibration. . .',
-                            html: 'Wait for 5 seconds',
-                            timer: 5000,
-                            timerProgressBar: true,
-                            didOpen: () => {
-                                Swal.showLoading()
-                                timerInterval = setInterval(() => {
-                                }, 100)
-                            },
-                            willClose: () => {
-                                clearInterval(timerInterval)
-                            }
-                        }).then((result) => {
-                            if (result.dismiss === Swal.DismissReason.timer) {
-                                console.log('I was closed by the timer')
-                            }
-                        })
-                        // And a timer duration in milliseconds
-                        var timerDuration = 5000; // 5 seconds for example
+                    else{
+                        if (button.id === 'button3') {
 
-                        // You can start the check after the timer ends like this
-                        setTimeout(checkIMUConnected, timerDuration);
+                            saveButtonState(button.id); // Save the button state
+                            sendFetchCommand(command1); // Send the first command
+                            // Display a popup immediately
+                            let timerInterval;
+                            Swal.fire({
+                                title: 'Calibration. . .',
+                                html: 'Wait for 5 seconds',
+                                timer: 5000,
+                                timerProgressBar: true,
+                                didOpen: () => {
+                                    Swal.showLoading()
+                                    timerInterval = setInterval(() => {
+                                    }, 100)
+                                },
+                                willClose: () => {
+                                    clearInterval(timerInterval)
+                                }
+                            }).then((result) => {
+                                if (result.dismiss === Swal.DismissReason.timer) {
+                                    console.log('I was closed by the timer')
+                                }
+                            })
+                            setTimeout(async () => {
+                                // CHECK IMU CONNECTED
+                                const user_nuc = 'goldenego-base';
+                                const ip_nuc = '192.168.0.50';
+                                const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
+                                const response = await fetch('/grep-command', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ command: sshCommand })
+                                });
+                                const data = await response.json();
 
+                                console.log(data);
+
+                                const x = data.output; // The result of the SSH command
+                                // Extract the number of IMUs connected
+                                const numIMUs = parseInt(x.match(/\d+/)[0]);
+                                // If the number of IMUs connected is 3, change the button color to green
+                                if (numIMUs != 3) {
+                                    Swal.fire('ERROR', 'IMU not Connected', 'error');
+                                    resetButtonState(button.id); // Reset the button state
+                                    sendFetchCommand(command2); // Send the second command
+                                }
+                                else
+                                {
+                                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                    Swal.fire('DONE', 'IMU Connected', 'success');
+                                }
+                            }, 4000); // 5000 milliseconds = 5 seconds
+                            
+                        }
+                        //turn on the button4 only if the button1 has been clicked
+                        else if(button.id === 'button4'){
+
+                            saveButtonState(button.id); // Save the button state
+                            sendFetchCommand(command1); // Send the first command
+                            // Display a popup immediately
+                            let timerInterval;
+                            Swal.fire({
+                                title: 'Activating cubes. . .',
+                                html: 'Wait for 5 seconds',
+                                timer: 5000,
+                                timerProgressBar: true,
+                                didOpen: () => {
+                                    Swal.showLoading()
+                                    timerInterval = setInterval(() => {
+                                    }, 100)
+                                },
+                                willClose: () => {
+                                    clearInterval(timerInterval)
+                                }
+                            }).then((result) => {
+                                if (result.dismiss === Swal.DismissReason.timer) {
+                                    console.log('I was closed by the timer')
+                                }
+                            })
+                            setTimeout(async () => {
+                                // CHECK IMU CONNECTED
+                                const user_nuc = 'goldenego-base';
+                                const ip_nuc = '192.168.0.50';
+                                const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'is NOT active' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
+                                const response = await fetch('/grep-command', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ command: sshCommand })
+                                });
+                                const data = await response.json();
+                                const x = data.output; // The result of the SSH command
+                                // Extract the number of IMUs connected
+                                console.log(x);
+                                if (x == '') {
+                                    // Create a vector from x by taking only the word "Hand" and "cube" and number after the word from the string
+                                    const vector = x.match(/(Hand|cube)\s+\d+/g);
+                                    
+                                    Swal.fire('ERROR', `Following cubes are not connected: ${vector}`, 'error');
+                                    resetButtonState(button.id); // Reset the button state
+                                    sendFetchCommand(command2); // Send the second command
+ 
+                                }
+                                else {
+                                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                    Swal.fire('DONE', 'Arms Activated', 'success');
+                                }
+                            }, 4000); // 5000 milliseconds = 5 seconds
+
+                            
+                        }
+                        
+                        //turn on the button5 only if the button4 has been clicked
+                        else if(button.id === 'button5'){
+                            const button4 = document.getElementById('button4');
+                            if (!button4.classList.contains('clicked')) {
+                                Swal.fire('ERROR', 'Turn on the Body Activation first', 'error');
+                            }
+                            else {
+
+                                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                saveButtonState(button.id); // Save the button state
+                                sendFetchCommand(command1); // Send the first command
+                                
+                            }
+                        }
+                        //turn on the button7 only if the button3 has been clicked
+                        else if (button.id === 'button7') {
+                            const button3 = document.getElementById('button3');
+                            if (!button3.classList.contains('clicked')) {
+                                Swal.fire('ERROR', 'Turn on the IMU first', 'error');
+                            }
+                            else {
+                                const { value: accept } = await Swal.fire({
+                                    title: 'Are you sure?',
+                                    text: "Put AlterEGO off the cart!",
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#3085d6',
+                                    cancelButtonColor: '#d33',
+                                    confirmButtonText: 'Yes, I am sure!'
+                                })
+                                if (accept) {
+                                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                    saveButtonState(button.id); // Save the button state
+                                    sendFetchCommand(command1); // Send the first command
+                                }
+                            }
+
+                        }
+                        else {
+                            button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                            saveButtonState(button.id); // Save the button state
+                            sendFetchCommand(command1); // Send the first command
+                        }
                     }
-                } else {
-                    Swal.fire('ERROR', 'Base Not Connected', 'error'); //warning error success info question
+                    
+                } 
+                else {
+                    Swal.fire('ERROR', 'Base computer not connected', 'error'); //warning error success info question
                 }
             }
         }
@@ -246,48 +424,20 @@
         // Update button states on page load
         window.addEventListener('load', () => {
             updateButtonState('button1');
-            // Initialize button4 as disabled
-            document.getElementById('button6').disabled = true;
-            // Enable button6 when button1 is clicked
-            document.getElementById('button1').addEventListener('click', function () {
-                var button6 = document.getElementById('button6');
-                button6.disabled = !button6.disabled;
-            });
+            updateButtonState('button2');
+            updateButtonState('button3');
+            updateButtonState('button4');
+            updateButtonState('button5');
+            updateButtonState('button6');
+            updateButtonState('button7');
 
-            // Initialize button4 as disabled
-            document.getElementById('button4').disabled = true;
-            // Enable button4 when button1 is clicked
-            document.getElementById('button1').addEventListener('click', function () {
-                var button4 = document.getElementById('button4');
-                button4.disabled = !button4.disabled;
-            });
-
-            // Initialize button3 as disabled
-            document.getElementById('button3').disabled = true;
-            // Enable button3 when button1 is clicked
-            document.getElementById('button1').addEventListener('click', function () {
-                var button3 = document.getElementById('button3');
-                button3.disabled = !button3.disabled;
-            });
-
-
-            // Initialize button5 as disabled
-            document.getElementById('button5').disabled = true;
-            // Enable button7 when button4 is clicked
-            document.getElementById('button4').addEventListener('click', function () {
-                var button5 = document.getElementById('button5');
-                button5.disabled = !button5.disabled;
-            });
-
-            // Initialize button7 as disabled
-            document.getElementById('button7').disabled = true;
-            // Enable button7 when button3 is clicked
-            document.getElementById('button3').addEventListener('click', function () {
-                var button7 = document.getElementById('button7');
-                button7.disabled = !button7.disabled;
-            });
         });
     </script>
 </body>
 
 </html>
+
+
+<!-- check bodyactivation -->
+<!-- risolvere perchè muore il roscore -->
+<!-- non perdere il caricamento -->
