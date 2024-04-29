@@ -16,8 +16,8 @@ app.post('/send-command', (req, res) => {
     
     exec(`ssh goldenego-base@192.168.0.50 '${command}'`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`Error executing command: ${error.message}`);
-            res.status(500).json({ error: 'Command execution failed' });
+            console.error(`Send Error executing command: ${error.message}`);
+            res.status(500).json({ error: 'Send Command execution failed' });
             return;
         }
         
@@ -32,8 +32,8 @@ app.post('/grep-command', (req, res) => {
     
     exec(`${command}`, (error, stdout, stderr) => {
         if (error) {
-            console.error(`Error executing command: ${error.message}`);
-            res.status(500).json({ error: 'Command execution failed' });
+            console.error(`Grep Error executing command: ${error.message}`);
+            res.status(500).json({ error: 'Grep execution failed' });
             return;
         }
         
