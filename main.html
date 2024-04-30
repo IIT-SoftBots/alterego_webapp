@@ -244,7 +244,6 @@
 
                         const button1 = document.getElementById('button1');
                         if (button.id === 'button1') {
-                            console.log("Button1 clicked");
                             button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                             saveButtonState(button.id); // Save the button state
                             sendFetchCommand(command1);
@@ -255,7 +254,7 @@
                         }
                         else{
                             if (button.id === 'button3') {
-                                console.log('Button3 clicked')
+                                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                                 saveButtonState(button.id); // Save the button state
                                 sendFetchCommand(command1); // Send the first command
                                 // Display a popup immediately
@@ -305,7 +304,6 @@
                                     }
                                     else
                                     {
-                                        button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                                         Swal.fire('DONE', 'IMU Connected', 'success');
                                     }
                                 }, 4000); // 5000 milliseconds = 5 seconds
@@ -321,7 +319,6 @@
                                     confirmButtonText: 'OK'
                                 }).then(() => {
                                         // Display a popup after clicked "Ok"
-                                        saveButtonState(button.id); // Save the button state
                                         sendFetchCommand(command1); // Send the first command
                                         let timerInterval;
                                         Swal.fire({
@@ -389,9 +386,11 @@
                                         }
                                         else{
                                             button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                            saveButtonState(button.id); // Save the button state
                                         }
                                     } catch (error) {
                                         button.classList.add('clicked'); // Add the 'clicked' class to change the background color
+                                        saveButtonState(button.id); // Save the button state
                                         Swal.fire('DONE', 'Arms Activated', 'success');
                                     }
 
