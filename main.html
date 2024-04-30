@@ -44,6 +44,7 @@
 <body>
     <h1 class="title">AlterEgo GUI</h1>
     <div class="button-container">
+
         <button class="button"
             onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
             id="button1">ROSCORE</button>
@@ -65,13 +66,69 @@
         <button class="button"
             onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/wheels/lqr /robot_goldenego/wheels/system_check /robot_goldenego/wheels/qb_interface_node')"
             id="button7">Wheels</button>
-    </div>
-    <div style="position: absolute; top: 1200px; right: 10px;">
-        <button class="button" onclick="openSettings()" style="height: 50px; width: 200px;">Settings</button>
+
+
+        <!-- <button class="button" id="button1">ROSCORE</button>
+        <button class="button" id="button2">Video</button>
+        <button class="button" id="button3">IMU</button>
+        <button class="button" id="button4">Body Activation</button>
+        <button class="button" id="button5">Body Movement</button>
+        <button class="button" id="button6">Pilot Communication</button>
+        <button class="button" id="button7">Wheels</button> -->
+
     </div>
     <!-- For using swal messages popup -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>  
     <script>
+
+        // // SendSSHCommand : ROSCORE 
+        // document.getElementById('button1').addEventListener('click', function() {
+        //     const command_roscore = 'source /opt/ros/noetic/setup.bash && roscore'; // Replace with the command you want to execute
+        //     sendSSHCommand(command_roscore);
+        // });
+
+        // // SendSSHCommand : VIDEO 
+        // document.getElementById('button2').addEventListener('click', function() {
+        //     sendVideoCommand('cd ~/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg');
+        // });
+
+        // // SendSSHCommand : IMU 
+        // document.getElementById('button3').addEventListener('click', function() {
+        //     const command_imu = 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2'; // Replace with the command you want to execute
+        //     sendSSHCommand(command_imu);
+        // });
+
+        function sendFetchCommand(command) {
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+
+
+
+        // Function to send command using fetch
+        // function sendFetchCommand(command) {
+        //     fetch('/send-command', {
+        //         method: 'POST',
+        //         headers: {
+        //             'Content-Type': 'application/json'
+        //         },
+        //         body: JSON.stringify({ command })
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {console.log('Send successful:', data.success); return data.success;})
+        //     .catch(error => {console.log('Send failed:', error);return false;});
+        // }
+
+
+
         // Check if the button was previously clicked and update its state
         function updateButtonState(buttonId) {
             const button = document.getElementById(buttonId);
@@ -196,8 +253,9 @@
                     if (button.id === 'button1') {
                         console.log("Button1 clicked");
                         button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                        sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
                         saveButtonState(button.id); // Save the button state
+                        sendFetchCommand(command1);
+                        // sendSSHFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
                     }
                     else if (!button1.classList.contains('clicked')) {
                         Swal.fire('ERROR', 'Turn on the ROSCORE', 'error');
@@ -263,8 +321,6 @@
                         //turn on the button4 only if the button1 has been clicked
                         else if(button.id === 'button4'){
                             console.log('Button4 clicked')
-                            saveButtonState(button.id); // Save the button state
-                            sendFetchCommand(command1); // Send the first command
                             Swal.fire({
                                 title: 'Warning',
                                 text: 'Please make sure to press Button first',
@@ -272,7 +328,8 @@
                                 confirmButtonText: 'OK'
                             }).then(() => {
                                     // Display a popup after clicked "Ok"
-
+                                    saveButtonState(button.id); // Save the button state
+                                    sendFetchCommand(command1); // Send the first command
                                     let timerInterval;
                                     Swal.fire({
                                         title: 'Activating cubes. . .',
@@ -389,7 +446,7 @@
                             }
 
                         }
-                        else {
+                        else if(button.id === 'button6'){
                             console.log("Something clicked");
                             button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                             saveButtonState(button.id); // Save the button state
@@ -415,26 +472,6 @@
                 sendFetchVideoCommand(command1); // Send the first command
             }
         }
-
-        // Function to send command using fetch
-        function sendFetchCommand(command) {
-            fetch('/send-command', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ command })
-            }).then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    // Handle the response from the server if needed
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    // Handle any errors that occurred during the request
-                });
-        }
-
 
         // Function to send command using fetch
         function sendFetchVideoCommand(command) {
