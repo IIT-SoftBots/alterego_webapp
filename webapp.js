@@ -1,5 +1,6 @@
 const express = require('express');
 const { exec } = require('child_process');
+
 const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
@@ -9,6 +10,7 @@ app.use(bodyParser.json()); // for parsing application/json
 
 
 
+app.use(express.static('/home/goldenego-vision/webapp/alterego_webapp')); // 'public' should be the directory that contains your HTML files
 
 let sshConnected = false;
 const Client = require('ssh2').Client;
