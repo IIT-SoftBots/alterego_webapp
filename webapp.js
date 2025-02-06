@@ -10,7 +10,7 @@ app.use(bodyParser.json()); // for parsing application/json
 
 
 
-app.use(express.static('/home/goldenego-vision/webapp/alterego_webapp')); // 'public' should be the directory that contains your HTML files
+app.use(express.static('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/')); // 'public' should be the directory that contains your HTML files
 
 let sshConnected = false;
 const Client = require('ssh2').Client;
@@ -24,9 +24,9 @@ function connectSSH() {
 
         // Configure the connection parameters
         const connectionParams = {
-            host: '192.168.0.50',
-            username: 'goldenego-base',
-            privateKey: require('fs').readFileSync('/home/goldenego-vision/.ssh/id_rsa')
+            host: '192.168.0.70',
+            username: 'alterego-base',
+            privateKey: require('fs').readFileSync('/home/alterego-vision/.ssh/id_rsa')
         };
 
         // Connect to the SSH server
@@ -81,10 +81,10 @@ app.post('/execute', async (req, res) => {
 
 // Add this line to use express.json() middleware
 app.use(express.json());
-app.use(express.static('/home/goldenego-vision/webapp/alterego_webapp/images'));
+app.use(express.static('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/images'));
 
 app.get('/', (req, res) => {
-    res.sendFile('/home/goldenego-vision/webapp/alterego_webapp/main.html');
+    res.sendFile('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/main.html');
 });
 
 app.post('/grep-command', (req, res) => {
@@ -144,8 +144,8 @@ app.post('/ping', (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Web app running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Web app running at http://0.0.0.0:${port}`);
 });
 
 

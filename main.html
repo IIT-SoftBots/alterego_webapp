@@ -84,25 +84,25 @@
         <div class="button-container">
 
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
                 id="button1">ROSCORE</button>
             <button class="button"
-                onclick="sendVideoCommand('cd /home/goldenego-vision/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg')"
+                onclick="sendVideoCommand('cd /home/alterego-vision/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg')"
                 id="button2">Video</button>
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill  /robot_goldenego/imu/Sensor  /robot_goldenego/imu/qb_interface_imu_node /robot_goldenego/alterego_state_publisher')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill  /robot_alterego/imu/Sensor  /robot_alterego/imu/qb_interface_imu_node /robot_alterego/alterego_state_publisher')"
                 id="button3">IMU</button>
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/left/qb_manager /robot_goldenego/right/qb_manager')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/left/qb_manager /robot_alterego/right/qb_manager')"
                 id="button4">Body Activation</button>
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/right/arm_inv_dyn /robot_goldenego/left/arm_inv_dyn /robot_goldenego/head/head_inv_kin /robot_goldenego/left/arm_inv_kin_main /robot_goldenego/pitch_correction /robot_goldenego/right/arm_inv_kin_main')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/right/arm_inv_dyn /robot_alterego/left/arm_inv_dyn /robot_alterego/head/head_inv_kin /robot_alterego/left/arm_inv_kin_main /robot_alterego/pitch_correction /robot_alterego/right/arm_inv_kin_main')"
                 id="button5">Body Movement</button>
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot pilot.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/inbound_data /robot_goldenego/socket')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot pilot.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/inbound_data /robot_alterego/socket')"
                 id="button6">Pilot Communication</button>
             <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_goldenego/wheels/lqr /robot_goldenego/wheels/system_check /robot_goldenego/wheels/qb_interface_node')"
+                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/wheels/lqr /robot_alterego/wheels/system_check /robot_alterego/wheels/qb_interface_node')"
                 id="button7">Wheels</button>
         </div>
         <!-- For using swal messages popup -->
@@ -152,7 +152,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ ip: '192.168.0.50' })
+                    body: JSON.stringify({ ip: '192.168.0.70' })
                 })
                     .then(response => response.json())
                     .then(data => {
@@ -246,7 +246,7 @@
                             button.classList.add('clicked'); // Add the 'clicked' class to change the background color
                             saveButtonState(button.id); // Save the button state
                             sendFetchCommand(command1);
-                            sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_goldenego && rosrun alterego_robot usb_ports_detector.py');
+                            sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && rosrun alterego_robot usb_ports_detector.py');
                         }
                         else if (!button1.classList.contains('clicked')) {
                             Swal.fire('ERROR', 'Turn on the ROSCORE', 'error');
@@ -278,8 +278,8 @@
                                 })
                                 setTimeout(async () => {
                                     // CHECK IMU CONNECTED
-                                    // const user_nuc = 'goldenego-base';
-                                    // const ip_nuc = '192.168.0.50';
+                                    // const user_nuc = 'alterego-base';
+                                    // const ip_nuc = '192.168.0.70';
                                     const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
                                     // const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
                                     const response = await fetch('/grep-command', {
