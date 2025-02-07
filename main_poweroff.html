@@ -1,0 +1,126 @@
+<html>
+    <head>
+        <title>GOLDEN EGO Connection</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <style>
+            .button-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .button {
+                height: 100px;
+                width: 100px;
+                font-size: 25px;
+                background-color: rgb(151, 134, 97);
+                border-radius: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                border: none;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            .button.clicked {
+                background-color: rgb(244, 247, 218);
+                color: black;
+            }
+
+            .title {
+                text-align: center;
+            }
+
+            body {
+                background-image: url('/goldenego.jpeg');
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                background-size: cover;
+            }
+
+            .sidenav {
+                height: 100%;
+                width: 0;
+                position: fixed;
+                z-index: 1;
+                top: 0;
+                left: 0;
+                background-color: #111;
+                overflow-x: hidden;
+                transition: 0.5s;
+                padding-top: 60px;
+            }
+
+            .sidenav a {
+                padding: 8px 8px 8px 32px;
+                text-decoration: none;
+                font-size: 25px;
+                color: #818181;
+                display: block;
+                transition: 0.3s;
+            }
+
+            .sidenav a:hover {
+                color: #f1f1f1;
+            }
+
+            .menu-btn {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                font-size: 30px;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1 class="title">AlterEgo GUI</h1>
+        <div class="button-container">
+            <button class="button" id="powerButton" onclick="togglePower()">
+                <i class="fas fa-power-off"></i>
+            </button>
+        </div>
+
+        <script>
+            function togglePower() {
+                const button = document.getElementById('powerButton');
+                button.classList.toggle('clicked');
+                const command = button.classList.contains('clicked') ? 'sudo poweroff' : 'sudo reboot';
+                sendFetchCommand(command);
+            }
+
+            function sendFetchCommand(command) {
+                fetch('/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command }),
+                })
+                .then(response => response.text())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+            }
+        </script>
+
+        <div id="mySidenav" class="sidenav">
+            <a href="settings.html" id="settingsLink">Settings</a>
+        </div>
+
+        <span class="menu-btn" onclick="toggleNav()">&#9776; Menu</span>
+
+        <script>
+            function toggleNav() {
+                var mySidenav = document.getElementById("mySidenav");
+                if (mySidenav.style.width === "250px") {
+                    mySidenav.style.width = "0";
+                } else {
+                    mySidenav.style.width = "250px";
+                }
+            }
+        </script>
+    </body>
+</html>
