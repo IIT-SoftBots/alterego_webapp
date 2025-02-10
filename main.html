@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>AlterEGO Control Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
 
         .button-container {
@@ -12,12 +14,18 @@
             align-items: center;
             gap: 1rem;
             padding: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .control-button {
-            width: 150px;
-            height: 150px;
-            border-radius: 15px;  /* Cambiato da 50% a 15px per renderlo quadrato con angoli arrotondati */
+            width: 100%;
+            aspect-ratio: 1;
+            min-width: 120px;
+            max-width: 200px;
+            height: auto;
+            border-radius: 15px;
             border: none;
             cursor: pointer;
             display: flex;
@@ -25,15 +33,15 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            font-size: 1.2rem;  /* Aumentato dimensione testo */
+            font-size: clamp(1rem, 2vw, 1.2rem);
             color: white;
+            margin: auto;
         }
 
         .control-button i {
-            font-size: 3rem;  /* Aumentato dimensione icona */
+            font-size: clamp(2rem, 4vw, 3rem);
             margin-bottom: 0.8rem;
         }
-
         .control-button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
@@ -73,8 +81,8 @@
             background-color: white;
             border-radius: 0.5rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
+            width: 90%;
+            max-width: 600px;
         }
 
         .status-item {
@@ -91,7 +99,7 @@
         }
 
         body {
-            background-image: url('/goldenego.jpeg');
+            background-image: url('/Adriano2.png');
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-size: cover;
@@ -109,21 +117,54 @@
         }
         .button-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1rem;
             width: 100%;
-            max-width: 400px;  /* Adjust based on your needs */
+            padding: 0 1rem;
+        }
+        @media screen and (max-width: 768px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .control-button {
+                min-width: 100px;
+            }
         }
 
+        @media screen and (max-width: 480px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .control-button {
+                min-width: 80px;
+                font-size: 0.9rem;
+            }
+
+            .control-button i {
+                font-size: 1.8rem;
+            }
+        }
+
+        .loading {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        .loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 
 
 
 <body>
-    <h1 class="title">AlterEGO Control Panel</h1>
+    <h1 class="title loading">AlterEGO Control Panel</h1>
 
-    <div class="button-container">
+    <div class="button-container loading">
         <div class="button-grid">
             <button id="powerBtn" class="control-button power-button">
                 <i class="fas fa-power-off"></i>
@@ -169,6 +210,39 @@
     </div>
 
     <script>
+
+        // Aggiungi il codice per caricare lo stato al caricamento della pagina
+        const initializeStates = () => {
+        isPowered = loadButtonState('isPowered');
+        isRunning = loadButtonState('isRunning');
+
+        if (isPowered) {
+            powerBtn.classList.add('on');
+            startBtn.disabled = false;
+            configBtn.disabled = false;
+            homeBtn.disabled = false;
+            resetBtn.disabled = false;
+            powerStatus.style.backgroundColor = '#22c55e';
+            document.querySelector('#powerStatus + span').textContent = 'Power: On';
+        }
+
+        if (isRunning) {
+            startBtn.classList.add('running');
+            startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+            systemStatus.style.backgroundColor = '#22c55e';
+            document.querySelector('#systemStatus + span').textContent = 'Status: Running';
+        }
+
+        // Mostra il contenuto dopo l'inizializzazione
+        document.querySelectorAll('.loading').forEach(el => {
+            el.classList.add('loaded');
+        });
+    };
+    
+        // Esegui l'inizializzazione appena possibile
+        document.addEventListener('DOMContentLoaded', initializeStates);
+
+
         const powerBtn = document.getElementById('powerBtn');
         const startBtn = document.getElementById('startBtn');
         const configBtn = document.getElementById('configBtn');
@@ -180,9 +254,35 @@
         let isPowered = false;
         let isRunning = false;
 
-        powerBtn.addEventListener('click', () => {
+        // Aggiungi queste funzioni per gestire il localStorage
+        function saveButtonState(buttonId, state) {
+            localStorage.setItem(buttonId, state);
+        }
+
+        function loadButtonState(buttonId) {
+            return localStorage.getItem(buttonId) === 'true';
+        }
+
+        // Modifica gli event listener esistenti
+        powerBtn.addEventListener('click', async () => {
             isPowered = !isPowered;
+            saveButtonState('isPowered', isPowered);
+
             if (isPowered) {
+                // Check if remote computer is online
+                const isRemoteComputerOnline = await pingRemoteComputer();
+                if (!isRemoteComputerOnline) {
+                    Swal.fire('ERROR', 'Base computer not connected', 'error');
+                    isPowered = false;
+                    saveButtonState('isPowered', false);
+                    return;
+                }
+
+                // Execute ROSCORE and related commands
+                sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roscore');
+                sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && rosrun alterego_robot usb_ports_detector.py');
+
+                // Update UI
                 powerBtn.classList.add('on');
                 startBtn.disabled = false;
                 configBtn.disabled = false;
@@ -190,13 +290,62 @@
                 resetBtn.disabled = false;
                 powerStatus.style.backgroundColor = '#22c55e';
                 document.querySelector('#powerStatus + span').textContent = 'Power: On';
+
+                // Initialize IMU
+                const { value: initIMU } = await Swal.fire({
+                    title: 'Initialize IMU?',
+                    text: "This will start IMU calibration",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, initialize'
+                });
+
+                if (initIMU) {
+                    sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2');
+                    
+                    let timerInterval;
+                    await Swal.fire({
+                        title: 'Calibrating IMU...',
+                        html: 'Wait for 5 seconds',
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading()
+                        }
+                    });
+
+                    // Check IMU connection
+                    const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
+                    const response = await fetch('/grep-command', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: grepCommand })
+                    });
+                    
+                    const data = await response.json();
+                    const numIMUs = parseInt(data.output.match(/\d+/)[0]);
+
+                    if (numIMUs !== 3) {
+                        await Swal.fire('ERROR', 'IMU not Connected', 'error');
+                        // Cleanup IMU
+                        sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/imu/Sensor /robot_alterego/imu/qb_interface_imu_node /robot_alterego/alterego_state_publisher');
+                    } else {
+                        await Swal.fire('SUCCESS', 'IMU Connected', 'success');
+                    }
+                }
+
             } else {
+                // Power off sequence
+                sendFetchCommand('killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt');
+                
+                // Update UI
                 powerBtn.classList.remove('on');
                 startBtn.disabled = true;
                 configBtn.disabled = true;
                 homeBtn.disabled = true;
                 resetBtn.disabled = true;
                 isRunning = false;
+                saveButtonState('isRunning', false);
                 startBtn.classList.remove('running');
                 startBtn.innerHTML = '<i class="fas fa-play"></i><span>Start</span>';
                 powerStatus.style.backgroundColor = '#ef4444';
@@ -208,6 +357,7 @@
 
         startBtn.addEventListener('click', () => {
             isRunning = !isRunning;
+            saveButtonState('isRunning', isRunning);
             if (isRunning) {
                 startBtn.classList.add('running');
                 startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
@@ -220,6 +370,38 @@
                 document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
         });
+        function sendFetchCommand(command) {
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+        function pingRemoteComputer() {
+            return fetch('/ping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: '192.168.0.70' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ping successful:', data.success);
+                return data.success;
+            })
+            .catch(error => {
+                console.log('Ping failed:', error);
+                return false;
+            });
+        }
+
+
     </script>
 </body>
 </html>
