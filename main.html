@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AlterEGO Control Panel</title>
+    <title>Control Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -36,6 +36,11 @@
             font-size: clamp(1rem, 2vw, 1.2rem);
             color: white;
             margin: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Aggiungi questa linea per l'ombra */
+        }
+
+        .control-button:hover {
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Ombra più pronunciata al passaggio del mouse */
         }
 
         .control-button i {
@@ -71,9 +76,9 @@
             background-color: #14b8a6;
         }
 
-        .reset-button {
+        /* .reset-button {
             background-color: #f97316;
-        }
+        } */
 
         .status-panel {
             margin-top: 2rem;
@@ -113,7 +118,14 @@
         .title {
             color: white;
             text-align: center;
-            margin: 2rem 0;
+            margin: 2rem auto;  /* Changed from '2rem 0' to '2rem auto' */
+            font-size: clamp(2rem, 4vw, 3rem);  /* Responsive font size */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);  /* Added shadow */
+            font-weight: 600;  /* Makes the text slightly bolder */
+            width: 100%;  /* Ensures full width for proper centering */
+            padding: 0 1rem;  /* Adds some padding on the sides */
+            position: relative;  /* Helps with positioning */
+            z-index: 1;  /* Ensures title stays above other elements */
         }
         .button-grid {
             display: grid;
@@ -162,7 +174,7 @@
 
 
 <body>
-    <h1 class="title loading">AlterEGO Control Panel</h1>
+    <h1 class="title loading">Control Panel</h1>
 
     <div class="button-container loading">
         <div class="button-grid">
@@ -176,7 +188,7 @@
                 <span>Start</span>
             </button>
 
-            <button id="configBtn" class="control-button config-button" disabled>
+            <button id="configBtn" class="control-button config-button" >
                 <i class="fas fa-cog"></i>
                 <span>Config</span>
             </button>
@@ -186,10 +198,10 @@
                 <span>Home</span>
             </button>
 
-            <button id="resetBtn" class="control-button reset-button" disabled>
+            <!-- <button id="resetBtn" class="control-button reset-button" >
                 <i class="fas fa-undo"></i>
                 <span>Reset</span>
-            </button>
+            </button> -->
         </div>
 
         <div class="status-panel">
@@ -210,6 +222,22 @@
     </div>
 
     <script>
+        const ROS_COMMANDS = {
+            SETUP: 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash',
+            CLEANUP: 'rosnode kill -a && killall -9 rosmaster',
+            CLEAR_LOG: 'truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt'
+        };
+
+        const LAUNCH_COMMANDS = {
+            ROSCORE: 'roscore',
+            USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
+            IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=3',
+            PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=3',
+            BACKWARD: 'roslaunch alterego_backward_controller backward.launch AlterEgoVersion:=3',
+            BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=3',
+            BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=3',
+            WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=3'
+        };
 
         // Aggiungi il codice per caricare lo stato al caricamento della pagina
         const initializeStates = () => {
@@ -219,9 +247,7 @@
         if (isPowered) {
             powerBtn.classList.add('on');
             startBtn.disabled = false;
-            configBtn.disabled = false;
             homeBtn.disabled = false;
-            resetBtn.disabled = false;
             powerStatus.style.backgroundColor = '#22c55e';
             document.querySelector('#powerStatus + span').textContent = 'Power: On';
         }
@@ -262,7 +288,28 @@
         function loadButtonState(buttonId) {
             return localStorage.getItem(buttonId) === 'true';
         }
-
+        
+        // Funzione per ottenere il nome del robot
+        async function getRobotName() {
+            const response = await fetch('/grep-command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'grep -oP "(?<=export ROBOT_NAME=).*" ~/.bashrc' })
+            });
+            const data = await response.json();
+            return data.output.trim();
+        }
+        async function checkNodeStatus(nodeName) {
+            const response = await fetch('/grep-command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode list | grep ${nodeName}`
+                })
+            });
+            const data = await response.json();
+            return data.output.includes(nodeName);
+        }
         // Modifica gli event listener esistenti
         powerBtn.addEventListener('click', async () => {
             isPowered = !isPowered;
@@ -278,34 +325,37 @@
                     return;
                 }
 
-                // Execute ROSCORE and related commands
-                sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roscore');
-                sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && rosrun alterego_robot usb_ports_detector.py');
 
-                // Update UI
+                
+                // Ottieni il nome del robot
+                const robotName = await getRobotName();
+
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.ROSCORE}`);
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.USB_DETECTOR}`);
+                   // Update UI
                 powerBtn.classList.add('on');
                 startBtn.disabled = false;
-                configBtn.disabled = false;
                 homeBtn.disabled = false;
-                resetBtn.disabled = false;
+                
                 powerStatus.style.backgroundColor = '#22c55e';
                 document.querySelector('#powerStatus + span').textContent = 'Power: On';
 
                 // Initialize IMU
                 const { value: initIMU } = await Swal.fire({
-                    title: 'Initialize IMU?',
-                    text: "This will start IMU calibration",
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, initialize'
+                    title: 'Calibration in Progress',
+                    text: "Do not touch the robot during calibration.",
+                    icon: 'warning',
+                    showCancelButton: false,
+                    confirmButtonText: 'OK, start calibration'
                 });
 
+
                 if (initIMU) {
-                    sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2');
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
                     
                     let timerInterval;
                     await Swal.fire({
-                        title: 'Calibrating IMU...',
+                        title: 'Calibrating...',
                         html: 'Wait for 5 seconds',
                         timer: 5000,
                         timerProgressBar: true,
@@ -328,22 +378,103 @@
                     if (numIMUs !== 3) {
                         await Swal.fire('ERROR', 'IMU not Connected', 'error');
                         // Cleanup IMU
-                        sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/imu/Sensor /robot_alterego/imu/qb_interface_imu_node /robot_alterego/alterego_state_publisher');
-                    } else {
-                        await Swal.fire('SUCCESS', 'IMU Connected', 'success');
+                        sendFetchCommand(`source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill -a`);
                     }
                 }
 
-            } else {
+
+                //Accendi il pilota
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
+
+                
+                //Liberare spazio per muoversi all'indietro
+                const { value: initWheels } = await Swal.fire({
+                    title: 'Please ',
+                    text: "Clear the space behind the robot.",
+                    icon: 'warning',
+                    showCancelButton: false,
+                    confirmButtonText: 'OK'
+                });
+
+
+                if (initWheels) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+                    
+                    let seconds = 0;
+                    const loadingAlert = Swal.fire({
+                        title: 'Moving Backward...',
+                        html: `Time elapsed: ${seconds}s`,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                            const timeCounter = setInterval(() => {
+                                seconds++;
+                                Swal.update({ html: `Time elapsed: ${seconds}s` });
+                            }, 1000);
+                            
+                            // Controlla lo stato del nodo ogni secondo
+                            const checkInterval = setInterval(async () => {
+                                const isNodeActive = await checkNodeStatus('/robot_alterego3/wheels/backward');
+                                if (!isNodeActive) {
+                                    clearInterval(checkInterval);
+                                    clearInterval(timeCounter);
+                                    Swal.close();
+                                }
+                            }, 1000);
+                        }
+                    });
+
+                    await loadingAlert;
+                }
+
+
+                // lo alzo e attivo le braccia 
+                const { value: initArms } = await Swal.fire({
+                    title: 'Please ',
+                    text: "Raise the robot.",
+                    icon: 'warning',
+                    showCancelButton: false,
+                    confirmButtonText: 'OK'
+                });
+
+                if (initArms) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+                    
+                    return new Promise((resolve) => {
+                        Swal.fire({
+                            title: 'Initializing robot...',
+                            text: 'Please wait',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                                // Controlla lo stato del nodo ogni secondo
+                                const checkInterval = setInterval(async () => {
+                                    const isNodeActive = await checkNodeStatus('/robot_alterego3/wheels/lqr');
+                                    if (isNodeActive) {
+                                        clearInterval(checkInterval);
+                                        Swal.close();
+                                        resolve();
+                                    }
+                                }, 1000);
+                            }
+                        });
+                    });
+                }
+            } 
+            else {
                 // Power off sequence
-                sendFetchCommand('killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt');
+                sendFetchCommand('source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt');
                 
                 // Update UI
                 powerBtn.classList.remove('on');
                 startBtn.disabled = true;
-                configBtn.disabled = true;
                 homeBtn.disabled = true;
-                resetBtn.disabled = true;
+                
                 isRunning = false;
                 saveButtonState('isRunning', false);
                 startBtn.classList.remove('running');
@@ -370,6 +501,7 @@
                 document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
         });
+        
         function sendFetchCommand(command) {
             fetch('/execute', {
                 method: 'POST',
