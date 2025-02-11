@@ -1,170 +1,148 @@
+// filepath: /home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/webapp.js
 const express = require('express');
 const { exec } = require('child_process');
-
+const path = require('path');
 const bodyParser = require('body-parser');
+const { Client } = require('ssh2');
+const fs = require('fs');
+
 const app = express();
 const port = 3000;
 
+// Middleware setup
+app.use(bodyParser.json());
+app.use(express.json());
 
-app.use(bodyParser.json()); // for parsing application/json
+// Static file serving
+app.use(express.static(__dirname));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
-
-
-app.use(express.static('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/')); // 'public' should be the directory that contains your HTML files
-
+// SSH setup
 let sshConnected = false;
-const Client = require('ssh2').Client;
-// Create a new SSH client instance
 const sshClient = new Client();
+
 function connectSSH() {
-    if (sshConnected) return;
+    if (sshConnected) return Promise.resolve();
 
     return new Promise((resolve, reject) => {
-
-
-        // Configure the connection parameters
         const connectionParams = {
             host: '192.168.0.70',
             username: 'alterego-base',
-            privateKey: require('fs').readFileSync('/home/alterego-vision/.ssh/id_rsa')
+            privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
         };
 
-        // Connect to the SSH server
         sshClient.connect(connectionParams);
 
         sshClient.on('ready', () => {
             console.log('Connected via SSH!');
             sshConnected = true;
-            resolve(); // Resolve the promise
+            resolve();
         });
 
-        // Handle errors during the SSH connection process
         sshClient.on('error', (err) => {
             console.error('Error connecting via SSH:', err);
-            reject(err); // Reject the promise
+            sshConnected = false;
+            reject(err);
         });
     });
 }
 
-
 function execute(command) {
-    // Execute the command on the remote server
-    sshClient.exec(command, (err, stream) => {
-        if (err) throw err;
+    return new Promise((resolve, reject) => {
+        sshClient.exec(command, (err, stream) => {
+            if (err) {
+                reject(err);
+                return;
+            }
 
-        stream
-            .on('data', (data) => {
-                console.log(data.toString());
-            })
-            .stderr.on('data', (data) => {
-                console.error('Command error:', data.toString());
+            let output = '';
+            let errorOutput = '';
+
+            stream.on('data', (data) => {
+                output += data.toString();
             });
+
+            stream.stderr.on('data', (data) => {
+                errorOutput += data.toString();
+            });
+
+            stream.on('close', () => {
+                if (errorOutput) {
+                    console.error('Command error:', errorOutput);
+                }
+                resolve(output);
+            });
+        });
     });
 }
-// Use the function
+
+// Routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'main.html'));
+});
+
 app.post('/execute', async (req, res) => {
-    const command = req.body.command;
-// Call the function
     try {
         if (!sshConnected) {
             await connectSSH();
         }
-        // The code here will execute after sshConnected is true
-        execute(command);
-    } catch (err) {
-        console.error('Error:', err);
+        const output = await execute(req.body.command);
+        res.json({ success: true, output });
+    } catch (error) {
+        console.error('Execute error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
-
-
-    res.send('Command execution started');
 });
 
-// Add this line to use express.json() middleware
-app.use(express.json());
-app.use(express.static('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/images'));
-
-app.get('/', (req, res) => {
-    res.sendFile('/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/main.html');
-});
-
-app.post('/grep-command', (req, res) => {
-    const command = req.body.command;
-    
-    sshClient.exec(command, (err, stream) => {
-        if (err) {
-            console.error(`Error executing command: ${err.message}`);
-            res.status(500).json({ error: 'Command execution failed' });
-            return;
+app.post('/grep-command', async (req, res) => {
+    try {
+        if (!sshConnected) {
+            await connectSSH();
         }
-
-        let output = '';
-        stream.on('data', (data) => {
-            output += data.toString();
-        });
-
-        stream.on('close', () => {
-            res.json({ success: true, output: output });
-        });
-
-        stream.stderr.on('data', (data) => {
-            console.error('Command error:', data.toString());
-        });
-    });
+        const output = await execute(req.body.command);
+        res.json({ output });
+    } catch (error) {
+        console.error('Grep command error:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/send-videocommand', (req, res) => {
-    const { command } = req.body;
-    
-    exec(`${command}`, (error, stdout, stderr) => {
+    exec(req.body.command, (error, stdout, stderr) => {
         if (error) {
-            console.error(`Error executing command: ${error.message}`);
-            res.status(500).json({ error: 'Command execution failed' });
+            console.error('Video command error:', error);
+            res.status(500).json({ success: false, error: error.message });
             return;
-        }        
-        console.log(`Command output: ${stdout}`);
-        res.json({ success: true });
+        }
+        res.json({ success: true, output: stdout });
     });
 });
-
 
 app.post('/ping', (req, res) => {
     const ip = req.body.ip;
-    exec(`ping -c 1 ${ip}`, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`error: ${error.message}`);
-            res.json({ success: false });
-            return;
-        }
-        if (stderr) {
-            console.log(`stderr: ${stderr}`);
-            res.json({ success: false });
-            return;
-        }
-        res.json({ success: true });
+    exec(`ping -c 1 ${ip}`, (error) => {
+        res.json({ success: !error });
     });
 });
 
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Web app running at http://0.0.0.0:${port}`);
-});
 
-
-app.use(function (err, req, res, next) {
-    console.error(err.stack);
+// Error handling
+app.use((err, req, res, next) => {
+    console.error('Application error:', err);
     res.status(500).send('Something broke!');
-  });
+});
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
     process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
     process.exit(1);
 });
 
-
-
-
-
+// Start server
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://0.0.0.0:${port}`);
+});

@@ -5,7 +5,170 @@
     <title>Control Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="styles/main.css">
+
+    <style>
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .control-button {
+            width: 100%;
+            aspect-ratio: 1;
+            min-width: 120px;
+            max-width: 200px;
+            height: auto;
+            border-radius: 15px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: white;
+            margin: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Aggiungi questa linea per l'ombra */
+        }
+
+        .control-button:hover {
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Ombra più pronunciata al passaggio del mouse */
+        }
+
+        .control-button i {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 0.8rem;
+        }
+        .control-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .power-button {
+            background-color: #ef4444;
+        }
+
+        .power-button.on {
+            background-color: #22c55e;
+        }
+
+        .start-button {
+            background-color: #3b82f6;
+        }
+
+        .start-button.running {
+            background-color: #eab308;
+        }
+
+        .config-button {
+            background-color: #8b5cf6;
+        }
+
+        .home-button {
+            background-color: #14b8a6;
+        }
+
+        /* .reset-button {
+            background-color: #f97316;
+        } */
+
+        .status-panel {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        body {
+            background-image: url('/Adriano2.png');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            color: white;
+            text-align: center;
+            margin: 2rem auto;  /* Changed from '2rem 0' to '2rem auto' */
+            font-size: clamp(2rem, 4vw, 3rem);  /* Responsive font size */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);  /* Added shadow */
+            font-weight: 600;  /* Makes the text slightly bolder */
+            width: 100%;  /* Ensures full width for proper centering */
+            padding: 0 1rem;  /* Adds some padding on the sides */
+            position: relative;  /* Helps with positioning */
+            z-index: 1;  /* Ensures title stays above other elements */
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            padding: 0 1rem;
+        }
+        @media screen and (max-width: 768px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .control-button {
+                min-width: 100px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .control-button {
+                min-width: 80px;
+                font-size: 0.9rem;
+            }
+
+            .control-button i {
+                font-size: 1.8rem;
+            }
+        }
+
+        .loading {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        .loaded {
+            opacity: 1;
+        }
+    </style>
 </head>
 
 
@@ -78,29 +241,29 @@
 
         // Aggiungi il codice per caricare lo stato al caricamento della pagina
         const initializeStates = () => {
-            isPowered = loadButtonState('isPowered');
-            isRunning = loadButtonState('isRunning');
+        isPowered = loadButtonState('isPowered');
+        isRunning = loadButtonState('isRunning');
 
-            if (isPowered) {
-                powerBtn.classList.add('on');
-                startBtn.disabled = false;
-                homeBtn.disabled = false;
-                powerStatus.style.backgroundColor = '#22c55e';
-                document.querySelector('#powerStatus + span').textContent = 'Power: On';
-            }
+        if (isPowered) {
+            powerBtn.classList.add('on');
+            startBtn.disabled = false;
+            homeBtn.disabled = false;
+            powerStatus.style.backgroundColor = '#22c55e';
+            document.querySelector('#powerStatus + span').textContent = 'Power: On';
+        }
 
-            if (isRunning) {
-                startBtn.classList.add('running');
-                startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
-                systemStatus.style.backgroundColor = '#22c55e';
-                document.querySelector('#systemStatus + span').textContent = 'Status: Running';
-            }
+        if (isRunning) {
+            startBtn.classList.add('running');
+            startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+            systemStatus.style.backgroundColor = '#22c55e';
+            document.querySelector('#systemStatus + span').textContent = 'Status: Running';
+        }
 
-            // Mostra il contenuto dopo l'inizializzazione
-            document.querySelectorAll('.loading').forEach(el => {
-                el.classList.add('loaded');
-            });
-        };
+        // Mostra il contenuto dopo l'inizializzazione
+        document.querySelectorAll('.loading').forEach(el => {
+            el.classList.add('loaded');
+        });
+    };
     
         // Esegui l'inizializzazione appena possibile
         document.addEventListener('DOMContentLoaded', initializeStates);
@@ -110,6 +273,7 @@
         const startBtn = document.getElementById('startBtn');
         const configBtn = document.getElementById('configBtn');
         const homeBtn = document.getElementById('homeBtn');
+        const resetBtn = document.getElementById('resetBtn');
         const powerStatus = document.getElementById('powerStatus');
         const systemStatus = document.getElementById('systemStatus');
 
@@ -120,9 +284,11 @@
         function saveButtonState(buttonId, state) {
             localStorage.setItem(buttonId, state);
         }
+
         function loadButtonState(buttonId) {
             return localStorage.getItem(buttonId) === 'true';
         }
+        
         // Funzione per ottenere il nome del robot
         async function getRobotName() {
             const response = await fetch('/grep-command', {
@@ -325,36 +491,7 @@
                 }, 30000);
             });
         }
-        function sendFetchCommand(command) {
-            fetch('/execute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ command: command }),
-            })
-            .then(response => response.text())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
-        }
-        function pingRemoteComputer() {
-            return fetch('/ping', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ip: '192.168.0.70' })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Ping successful:', data.success);
-                return data.success;
-            })
-            .catch(error => {
-                console.log('Ping failed:', error);
-                return false;
-            });
-        }
+
         // Modifica gli event listener esistenti
         powerBtn.addEventListener('click', async () => {
             isPowered = !isPowered;
@@ -529,6 +666,7 @@
                 document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
         });
+
         startBtn.addEventListener('click', () => {
             isRunning = !isRunning;
             saveButtonState('isRunning', isRunning);
@@ -544,6 +682,37 @@
                 document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
         });
+        function sendFetchCommand(command) {
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+        function pingRemoteComputer() {
+            return fetch('/ping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: '192.168.0.70' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ping successful:', data.success);
+                return data.success;
+            })
+            .catch(error => {
+                console.log('Ping failed:', error);
+                return false;
+            });
+        }
+
 
     </script>
 </body>
