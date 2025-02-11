@@ -310,6 +310,186 @@
             const data = await response.json();
             return data.output.includes(nodeName);
         }
+        async function getTopicValue(topic) {
+            try {
+                // Add retry mechanism
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        const response = await fetch('/grep-command', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 ${topic}`
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        if (!data || !data.output) {
+                            console.warn('No data received from topic:', topic);
+                            return null;
+                        }
+                        
+                        // Extract y value
+                        const match = data.output.match(/y:\s*([-]?\d*\.?\d*)/);
+                        if (!match) {
+                            console.warn('Could not parse y value from:', data.output);
+                            return null;
+                        }
+                        
+                        return parseFloat(match[1]);
+                    } catch (error) {
+                        retries--;
+                        if (retries === 0) throw error;
+                        console.warn(`Retry attempt left: ${retries}`);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+                    }
+                }
+            } catch (error) {
+                console.error('Error reading topic:', error);
+                // If it's an SSH error, try to reconnect
+                if (error.message.includes('SSH') || error.message.includes('Channel open failure')) {
+                    console.log('SSH connection lost, attempting to reconnect...');
+                    // Notify user of connection issue
+                    Swal.fire({
+                        title: 'Connection Lost',
+                        text: 'Attempting to reconnect...',
+                        icon: 'warning',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+                return null;
+            }
+        }
+        // First modify checkStability function to remove its loading alert
+        async function checkStability(robotName) {
+            return new Promise((resolve) => {
+                let checkInterval;
+                let consecutiveNullReadings = 0;
+                const MAX_NULL_READINGS = 5;
+                const POLLING_INTERVAL = 500;
+                
+                let stableStartTime = null;
+                let lastCheckTime = Date.now();
+                
+                checkInterval = setInterval(async () => {
+                    const now = Date.now();
+                    if (now - lastCheckTime < POLLING_INTERVAL) {
+                        return;
+                    }
+                    lastCheckTime = now;
+
+                    try {
+                        const value = await getTopicValue(`/${robotName}/imu/RPY`);
+                        console.log('IMU value:', value, 'Time:', new Date().toISOString());
+                        
+                        if (value === null) {
+                            consecutiveNullReadings++;
+                            console.warn(`Null reading #${consecutiveNullReadings}`);
+                            
+                            if (consecutiveNullReadings >= MAX_NULL_READINGS) {
+                                console.error('Too many failed readings, stopping stability check');
+                                clearInterval(checkInterval);
+                                resolve(false);
+                                return;
+                            }
+                            return;
+                        }
+                        
+                        consecutiveNullReadings = 0;
+                        
+                        if (value >= -0.3 && value <= 0.3) {
+                            if (!stableStartTime) {
+                                stableStartTime = Date.now();
+                                console.log('Started stability timer');
+                            }
+                            
+                            const stableTime = Date.now() - stableStartTime;
+                            console.log('Stable for:', (stableTime/1000).toFixed(1), 'seconds');
+                            
+                            if (stableTime >= 2000) {
+                                console.log('Stability achieved');
+                                clearInterval(checkInterval);
+                                resolve(true);
+                                return;
+                            }
+                        } else {
+                            if (stableStartTime) {
+                                console.log('Stability lost, resetting timer');
+                                stableStartTime = null;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error in stability check:', error);
+                    }
+                }, POLLING_INTERVAL);
+            });
+        }
+       // First, add this new function above the event listeners
+        async function waitForArmMovement(robotName) {
+            return new Promise((resolve) => {
+                let checkInterval;
+                const POLLING_INTERVAL = 500;
+
+                const loadingAlert = Swal.fire({
+                    title: 'Activating arms...',
+                    text: 'Waiting for movement',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        
+                        checkInterval = setInterval(async () => {
+                            try {
+                                const response = await fetch('/grep-command', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                        command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
+                                    })
+                                });
+                                
+                                const data = await response.json();
+                                if (data && data.output) {
+                                    // Extract numbers from output
+                                    const values = data.output.match(/[-]?\d*\.?\d+/g);
+                                    if (values) {
+                                        // Check if any value is non-zero
+                                        const hasMovement = values.some(v => Math.abs(parseFloat(v)) > 0.01);
+                                        console.log('Arm values:', values);
+                                        
+                                        if (hasMovement) {
+                                            console.log('Movement detected');
+                                            clearInterval(checkInterval);
+                                            Swal.close();
+                                            resolve(true);
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error checking arm movement:', error);
+                            }
+                        }, POLLING_INTERVAL);
+                    },
+                    willClose: () => {
+                        clearInterval(checkInterval);
+                    }
+                });
+
+                // Add timeout after 30 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    Swal.close();
+                    resolve(false);
+                }, 30000);
+            });
+        }
+
         // Modifica gli event listener esistenti
         powerBtn.addEventListener('click', async () => {
             isPowered = !isPowered;
@@ -388,7 +568,7 @@
 
                 
                 //Liberare spazio per muoversi all'indietro
-                const { value: initWheels } = await Swal.fire({
+                const { value: initBackward } = await Swal.fire({
                     title: 'Please ',
                     text: "Clear the space behind the robot.",
                     icon: 'warning',
@@ -397,40 +577,34 @@
                 });
 
 
-                if (initWheels) {
-                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+                // if (initBackward) {
+                //     sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
                     
-                    let seconds = 0;
-                    const loadingAlert = Swal.fire({
-                        title: 'Moving Backward...',
-                        html: `Time elapsed: ${seconds}s`,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                            const timeCounter = setInterval(() => {
-                                seconds++;
-                                Swal.update({ html: `Time elapsed: ${seconds}s` });
-                            }, 1000);
+                //     const loadingAlert = Swal.fire({
+                //         title: 'Moving Backward...',
+                //         text: 'Please wait',
+                //         allowOutsideClick: false,
+                //         allowEscapeKey: false,
+                //         didOpen: () => {
+                //             Swal.showLoading();
                             
-                            // Controlla lo stato del nodo ogni secondo
-                            const checkInterval = setInterval(async () => {
-                                const isNodeActive = await checkNodeStatus('/robot_alterego3/wheels/backward');
-                                if (!isNodeActive) {
-                                    clearInterval(checkInterval);
-                                    clearInterval(timeCounter);
-                                    Swal.close();
-                                }
-                            }, 1000);
-                        }
-                    });
+                //             // Check node status every second
+                //             const checkInterval = setInterval(async () => {
+                //                 const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
+                //                 if (!isNodeActive) {
+                //                     clearInterval(checkInterval);
+                //                     Swal.close();
+                //                 }
+                //             }, 1000);
+                //         }
+                //     });
 
-                    await loadingAlert;
-                }
+                //     await loadingAlert;
+                // }
 
 
                 // lo alzo e attivo le braccia 
-                const { value: initArms } = await Swal.fire({
+                const { value: initWheels } = await Swal.fire({
                     title: 'Please ',
                     text: "Raise the robot.",
                     icon: 'warning',
@@ -438,33 +612,45 @@
                     confirmButtonText: 'OK'
                 });
 
-                if (initArms) {
-                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-                    
-                    return new Promise((resolve) => {
-                        Swal.fire({
-                            title: 'Initializing robot...',
-                            text: 'Please wait',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                                // Controlla lo stato del nodo ogni secondo
-                                const checkInterval = setInterval(async () => {
-                                    const isNodeActive = await checkNodeStatus('/robot_alterego3/wheels/lqr');
-                                    if (isNodeActive) {
-                                        clearInterval(checkInterval);
-                                        Swal.close();
-                                        resolve();
-                                    }
-                                }, 1000);
-                            }
-                        });
+                // Then modify the initialization part in the power button click handler
+                if (initWheels) {
+                    // Start the loading state
+                    const loadingAlert = Swal.fire({
+                        title: 'System Initialization',
+                        text: 'Please wait while the system initializes...',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
                     });
+
+                    const isStable = await checkStability(robotName);
+                    if (isStable) {
+                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+                        
+                        // Remove the 5 second wait alert and just wait
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        
+                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+                        const armsMoved = await waitForArmMovement(robotName);
+                        
+                        // Close the loading state
+                        Swal.close();
+                        
+                        if (!armsMoved) {
+                            await Swal.fire('Error', 'Arms did not activate properly', 'error');
+                            return;
+                        }
+                        
+                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+                    } else {
+                        // Close the loading state if stability check failed
+                        Swal.close();
+                        await Swal.fire('Error', 'Could not achieve stability', 'error');
+                    }
                 }
+
             } 
             else {
                 // Power off sequence
@@ -501,7 +687,6 @@
                 document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
         });
-        
         function sendFetchCommand(command) {
             fetch('/execute', {
                 method: 'POST',
