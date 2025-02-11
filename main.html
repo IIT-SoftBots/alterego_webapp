@@ -360,6 +360,8 @@
                         text: 'Attempting to reconnect...',
                         icon: 'warning',
                         showConfirmButton: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
                         timer: 2000
                     });
                 }
@@ -403,7 +405,7 @@
                         
                         consecutiveNullReadings = 0;
                         
-                        if (value >= -0.3 && value <= 0.3) {
+                        if (value >= -0.2 && value <= 0.1) {
                             if (!stableStartTime) {
                                 stableStartTime = Date.now();
                                 console.log('Started stability timer');
@@ -526,6 +528,8 @@
                     text: "Do not touch the robot during calibration.",
                     icon: 'warning',
                     showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
                     confirmButtonText: 'OK, start calibration'
                 });
 
@@ -539,6 +543,8 @@
                         html: 'Wait for 5 seconds',
                         timer: 5000,
                         timerProgressBar: true,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
                         didOpen: () => {
                             Swal.showLoading()
                         }
@@ -573,82 +579,71 @@
                     text: "Clear the space behind the robot.",
                     icon: 'warning',
                     showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
                     confirmButtonText: 'OK'
                 });
 
 
-                // if (initBackward) {
-                //     sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+                if (initBackward) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
                     
-                //     const loadingAlert = Swal.fire({
-                //         title: 'Moving Backward...',
-                //         text: 'Please wait',
-                //         allowOutsideClick: false,
-                //         allowEscapeKey: false,
-                //         didOpen: () => {
-                //             Swal.showLoading();
-                            
-                //             // Check node status every second
-                //             const checkInterval = setInterval(async () => {
-                //                 const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
-                //                 if (!isNodeActive) {
-                //                     clearInterval(checkInterval);
-                //                     Swal.close();
-                //                 }
-                //             }, 1000);
-                //         }
-                //     });
-
-                //     await loadingAlert;
-                // }
-
-
-                // lo alzo e attivo le braccia 
-                const { value: initWheels } = await Swal.fire({
-                    title: 'Please ',
-                    text: "Raise the robot.",
-                    icon: 'warning',
-                    showCancelButton: false,
-                    confirmButtonText: 'OK'
-                });
-
-                // Then modify the initialization part in the power button click handler
-                if (initWheels) {
-                    // Start the loading state
                     const loadingAlert = Swal.fire({
-                        title: 'System Initialization',
-                        text: 'Please wait while the system initializes...',
+                        title: 'Moving Backward...',
+                        text: 'Please wait',
                         allowOutsideClick: false,
                         allowEscapeKey: false,
                         didOpen: () => {
                             Swal.showLoading();
+                            
+                            // Check node status every second
+                            const checkInterval = setInterval(async () => {
+                                const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
+                                if (!isNodeActive) {
+                                    clearInterval(checkInterval);
+                                    Swal.close();
+                                }
+                            }, 1000);
                         }
                     });
 
-                    const isStable = await checkStability(robotName);
-                    if (isStable) {
-                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-                        
-                        // Remove the 5 second wait alert and just wait
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        
-                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-                        const armsMoved = await waitForArmMovement(robotName);
-                        
-                        // Close the loading state
-                        Swal.close();
-                        
-                        if (!armsMoved) {
-                            await Swal.fire('Error', 'Arms did not activate properly', 'error');
-                            return;
-                        }
-                        
-                        sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-                    } else {
-                        // Close the loading state if stability check failed
-                        Swal.close();
-                        await Swal.fire('Error', 'Could not achieve stability', 'error');
+                    await loadingAlert;
+                }
+
+                // Start the loading state
+                const loadingAlert = Swal.fire({
+                    title: 'System Initialization',
+                    text: 'Raise the robot and wait...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
                     }
+                });
+
+                const isStable = await checkStability(robotName);
+                if (isStable) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+                    
+                    // Remove the 5 second wait alert and just wait
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+                    const armsMoved = await waitForArmMovement(robotName);
+                    
+                    // Close the loading state
+                    Swal.close();
+                    
+                    if (!armsMoved) {
+                        await Swal.fire('Error', 'Arms did not activate properly', 'error');
+                        return;
+                    }
+                    
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+                } else {
+                    // Close the loading state if stability check failed
+                    Swal.close();
+                    await Swal.fire('Error', 'Could not achieve stability', 'error');
                 }
 
             } 
