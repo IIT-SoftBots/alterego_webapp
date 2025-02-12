@@ -6,6 +6,10 @@ const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
 
+
+// Importa WebSocket
+const { wss } = require('./js/websocket');
+
 const app = express();
 const port = 3000;
 
@@ -16,6 +20,18 @@ app.use(express.json());
 // Static file serving
 app.use(express.static(__dirname));
 app.use('/images', express.static(path.join(__dirname, 'images')));
+
+// Start server
+const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://0.0.0.0:${port}`);
+});
+
+// Collegamento WebSocket al server HTTP
+server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+    });
+});
 
 // SSH setup
 let sshConnected = false;
@@ -143,6 +159,6 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${port}`);
-});
+// app.listen(port, '0.0.0.0', () => {
+//     console.log(`Server running at http://0.0.0.0:${port}`);
+// });

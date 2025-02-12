@@ -1,544 +1,550 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Control Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
 
-    <head>
-        <title>GOLDEN EGO Connection</title>
-        <style>
-            .button-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
 
-            .button {
-                height: 100px;
-                width: 400px;
-                margin-bottom: 25px;
-                font-size: 25px;
-                /* Increase the font size */
-                background-color: rgb(151, 134, 97);
-                /* Set the initial background color */
-                border-radius: 50px;
-                /* Make the buttons round */
-            }
 
-            .button.clicked {
-                background-color: rgb(244, 247, 218);
-                /* Set the background color when clicked */
-            }
+<body>
+    <h1 class="title loading">Control Panel</h1>
 
-            .title {
-                text-align: center;
-                /* Center align the title */
-            }
+    <div class="button-container loading">
+        <div class="button-grid">
+            <button id="powerBtn" class="control-button power-button">
+                <i class="fas fa-power-off"></i>
+                <span>Power</span>
+            </button>
+            
+            <button id="startBtn" class="control-button start-button" disabled>
+                <i class="fas fa-play"></i>
+                <span>Start</span>
+            </button>
 
-            body {
-                background-image: url('/goldenego.jpeg');
-                background-repeat: no-repeat;
-                background-attachment: fixed;
-                background-size: cover;
+            <button id="configBtn" class="control-button config-button" >
+                <i class="fas fa-cog"></i>
+                <span>Config</span>
+            </button>
 
-            }
+            <button id="homeBtn" class="control-button home-button" disabled>
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </button>
 
-            /* Stile del menu laterale */
-            .sidenav {
-                height: 100%;
-                width: 0;
-                position: fixed;
-                z-index: 1;
-                top: 0;
-                left: 0;
-                background-color: #111;
-                overflow-x: hidden;
-                transition: 0.5s;
-                padding-top: 60px;
-            }
-
-            /* Stile dei link del menu */
-            .sidenav a {
-                padding: 8px 8px 8px 32px;
-                text-decoration: none;
-                font-size: 25px;
-                color: #818181;
-                display: block;
-                transition: 0.3s;
-            }
-
-            /* Cambia il colore dei link al passaggio del mouse */
-            .sidenav a:hover {
-                color: #f1f1f1;
-            }
-
-            /* Stile del pulsante che apre il menu */
-            .menu-btn {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                font-size: 30px;
-                cursor: pointer;
-            }
-        </style>
-    </head>
-
-    <body>
-        <h1 class="title">AlterEgo GUI</h1>
-        <div class="button-container">
-
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roscore', 'killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt ')"
-                id="button1">ROSCORE</button>
-            <button class="button"
-                onclick="sendVideoCommand('cd /home/alterego-vision/AlterEGO_v2/EGO_GUI && ./AV_com_Oculus.sh 192.168.0.62 video', 'killall -9 ffmpeg')"
-                id="button2">Video</button>
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot imu.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill  /robot_alterego/imu/Sensor  /robot_alterego/imu/qb_interface_imu_node /robot_alterego/alterego_state_publisher')"
-                id="button3">IMU</button>
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/left/qb_manager /robot_alterego/right/qb_manager')"
-                id="button4">Body Activation</button>
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/right/arm_inv_dyn /robot_alterego/left/arm_inv_dyn /robot_alterego/head/head_inv_kin /robot_alterego/left/arm_inv_kin_main /robot_alterego/pitch_correction /robot_alterego/right/arm_inv_kin_main')"
-                id="button5">Body Movement</button>
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot pilot.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/inbound_data /robot_alterego/socket')"
-                id="button6">Pilot Communication</button>
-            <button class="button"
-                onclick="sendCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && roslaunch alterego_robot wheels.launch AlterEgoVersion:=2', 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill /robot_alterego/wheels/lqr /robot_alterego/wheels/system_check /robot_alterego/wheels/qb_interface_node')"
-                id="button7">Wheels</button>
+            <!-- <button id="resetBtn" class="control-button reset-button" >
+                <i class="fas fa-undo"></i>
+                <span>Reset</span>
+            </button> -->
         </div>
-        <!-- For using swal messages popup -->
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>  
-        <script>
 
-            function sendFetchCommand(command) {
-                fetch('/execute', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ command: command }),
-                })
-                .then(response => response.text())
-                .then(data => console.log(data))
-                .catch(error => console.error('Error:', error));
+        <div class="status-panel">
+            <h3 style="margin-top: 0;">System Status</h3>
+            <div class="status-item">
+                <div id="powerStatus" class="status-indicator" style="background-color: #ef4444;"></div>
+                <span>Power: Off</span>
+            </div>
+            <div class="status-item">
+                <div id="batteryStatus" class="status-indicator" style="background-color: #22c55e;"></div>
+                <span>Battery: 85%</span>
+            </div>
+            <div class="status-item">
+                <div id="systemStatus" class="status-indicator" style="background-color: #eab308;"></div>
+                <span>Status: Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ROS_COMMANDS = {
+            SETUP: 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash',
+            CLEANUP: 'rosnode kill -a && killall -9 rosmaster',
+            CLEAR_LOG: 'truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt'
+        };
+
+        const LAUNCH_COMMANDS = {
+            ROSCORE: 'roscore',
+            USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
+            IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=3',
+            PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=3',
+            BACKWARD: 'roslaunch alterego_backward_controller backward.launch AlterEgoVersion:=3',
+            BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=3',
+            BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=3',
+            WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=3'
+        };
+
+        // Aggiungi il codice per caricare lo stato al caricamento della pagina
+        const initializeStates = () => {
+            isPowered = loadButtonState('isPowered');
+            isRunning = loadButtonState('isRunning');
+
+            if (isPowered) {
+                powerBtn.classList.add('on');
+                startBtn.disabled = false;
+                homeBtn.disabled = false;
+                powerStatus.style.backgroundColor = '#22c55e';
+                document.querySelector('#powerStatus + span').textContent = 'Power: On';
             }
 
-            // Check if the button was previously clicked and update its state
-            function updateButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                const clicked = localStorage.getItem(buttonId);
-                if (clicked === 'true') {
-                    button.classList.add('clicked');
+            if (isRunning) {
+                startBtn.classList.add('running');
+                startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+                systemStatus.style.backgroundColor = '#22c55e';
+                document.querySelector('#systemStatus + span').textContent = 'Status: Running';
+            }
+
+            // Mostra il contenuto dopo l'inizializzazione
+            document.querySelectorAll('.loading').forEach(el => {
+                el.classList.add('loaded');
+            });
+        };
+    
+        // Esegui l'inizializzazione appena possibile
+        document.addEventListener('DOMContentLoaded', initializeStates);
+
+
+        const powerBtn = document.getElementById('powerBtn');
+        const startBtn = document.getElementById('startBtn');
+        const configBtn = document.getElementById('configBtn');
+        const homeBtn = document.getElementById('homeBtn');
+        const powerStatus = document.getElementById('powerStatus');
+        const systemStatus = document.getElementById('systemStatus');
+
+        let isPowered = false;
+        let isRunning = false;
+
+        // Aggiungi queste funzioni per gestire il localStorage
+        function saveButtonState(buttonId, state) {
+            localStorage.setItem(buttonId, state);
+        }
+        function loadButtonState(buttonId) {
+            return localStorage.getItem(buttonId) === 'true';
+        }
+        // Funzione per ottenere il nome del robot
+        async function getRobotName() {
+            const response = await fetch('/grep-command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'grep -oP "(?<=export ROBOT_NAME=).*" ~/.bashrc' })
+            });
+            const data = await response.json();
+            return data.output.trim();
+        }
+        async function checkNodeStatus(nodeName) {
+            const response = await fetch('/grep-command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode list | grep ${nodeName}`
+                })
+            });
+            const data = await response.json();
+            return data.output.includes(nodeName);
+        }
+        async function getTopicValue(topic) {
+            try {
+                // Add retry mechanism
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        const response = await fetch('/grep-command', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 ${topic}`
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        if (!data || !data.output) {
+                            console.warn('No data received from topic:', topic);
+                            return null;
+                        }
+                        
+                        // Extract y value
+                        const match = data.output.match(/y:\s*([-]?\d*\.?\d*)/);
+                        if (!match) {
+                            console.warn('Could not parse y value from:', data.output);
+                            return null;
+                        }
+                        
+                        return parseFloat(match[1]);
+                    } catch (error) {
+                        retries--;
+                        if (retries === 0) throw error;
+                        console.warn(`Retry attempt left: ${retries}`);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+                    }
                 }
-            }
-
-            // Save the button state when clicked
-            function saveButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                const clicked = button.classList.contains('clicked');
-                localStorage.setItem(buttonId, clicked);
-            }
-
-            // Reset the button state when clicked again
-            function resetButtonState(buttonId) {
-                const button = document.getElementById(buttonId);
-                button.classList.remove('clicked');
-                localStorage.removeItem(buttonId);
-            }
-
-            // Ping a remote computer
-            function pingRemoteComputer() {
-                return fetch('/ping', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ ip: '192.168.0.70' })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Ping successful:', data.success);
-                        return data.success;
-                    })
-                    .catch(error => {
-                        console.log('Ping failed:', error);
-                        return false;
+            } catch (error) {
+                console.error('Error reading topic:', error);
+                // If it's an SSH error, try to reconnect
+                if (error.message.includes('SSH') || error.message.includes('Channel open failure')) {
+                    console.log('SSH connection lost, attempting to reconnect...');
+                    // Notify user of connection issue
+                    Swal.fire({
+                        title: 'Connection Lost',
+                        text: 'Attempting to reconnect...',
+                        icon: 'warning',
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        timer: 2000
                     });
-            }
-
-
-
-            // Send command and update button state
-            async function sendCommand(command1, command2) {
-                const button = event.target;
-                if (button.classList.contains('clicked')) {
-                    if(button.id === 'button1')
-                    {
-                        // Check if there are other buttons clicked
-                        const buttons = document.querySelectorAll('.clicked');
-                        if (buttons.length > 1 ) {
-                            Swal.fire('ERROR', 'CLOSE ALL THE COMMANDS FIRST', 'error');
-                        }
-                        else {
-
-                            resetButtonState(button.id); // Reset the button state
-                            sendFetchCommand(command2); // Send the second command
-                            // console.log('Closing the roscore');
-                        }
-                    }
-                    else if(button.id === 'button3')
-                    {
-                        //get button7 state
-                        const button7 = document.getElementById('button7');
-                        if (button7.classList.contains('clicked')) {
-                            Swal.fire('ERROR', 'CLOSE THE WHEELS FIRST', 'error');
-                        }
-                        else {
-                            resetButtonState(button.id); // Reset the button state
-                            sendFetchCommand(command2); // Send the second command
-                        }
-
-                    }
-                    else if(button.id === 'button4')
-                    {
-                        //get button5 state
-                        const button5 = document.getElementById('button5');
-                        if (button5.classList.contains('clicked')) {
-                            Swal.fire('ERROR', 'Close the body movement first', 'error');
-                        }
-                        else {
-                            resetButtonState(button.id); // Reset the button state
-                            sendFetchCommand(command2); // Send the second command
-                        }
-                    }
-                    else if(button.id === 'button6')
-                    {
-                        resetButtonState(button.id); // Reset the button state
-                        sendFetchCommand(command2); // Send the second command
-                    }
-                    else if(button.id === 'button7'){
-                        const { value: accept } = await Swal.fire({
-                                    title: 'Are you sure?',
-                                    text: "Put AlterEGO on the cart!",
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#3085d6',
-                                    cancelButtonColor: '#d33',
-                                    confirmButtonText: 'Yes, I am sure!'
-                                })
-                                if (accept) {
-                                    resetButtonState(button.id); // Reset the button state
-                                    sendFetchCommand(command2); // Send the second command
-                                }
-                    }
-                    else {
-                        resetButtonState(button.id); // Reset the button state
-                        sendFetchCommand(command2); // Send the second command
-                    }
-
-
                 }
-                else {
-                    const isRemoteComputerOnline = await pingRemoteComputer();
-                    if (isRemoteComputerOnline) {
+                return null;
+            }
+        }
+        // First modify checkStability function to remove its loading alert
+        async function checkStability(robotName) {
+            return new Promise((resolve) => {
+                let checkInterval;
+                let consecutiveNullReadings = 0;
+                const MAX_NULL_READINGS = 5;
+                const POLLING_INTERVAL = 500;
+                
+                let stableStartTime = null;
+                let lastCheckTime = Date.now();
+                
+                checkInterval = setInterval(async () => {
+                    const now = Date.now();
+                    if (now - lastCheckTime < POLLING_INTERVAL) {
+                        return;
+                    }
+                    lastCheckTime = now;
 
-                        const button1 = document.getElementById('button1');
-                        if (button.id === 'button1') {
-                            button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                            saveButtonState(button.id); // Save the button state
-                            sendFetchCommand(command1);
-                            sendFetchCommand('source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && export ROBOT_NAME=robot_alterego && rosrun alterego_robot usb_ports_detector.py');
+                    try {
+                        const value = await getTopicValue(`/${robotName}/imu/RPY`);
+                        console.log('IMU value:', value, 'Time:', new Date().toISOString());
+                        
+                        if (value === null) {
+                            consecutiveNullReadings++;
+                            console.warn(`Null reading #${consecutiveNullReadings}`);
+                            
+                            if (consecutiveNullReadings >= MAX_NULL_READINGS) {
+                                console.error('Too many failed readings, stopping stability check');
+                                clearInterval(checkInterval);
+                                resolve(false);
+                                return;
+                            }
+                            return;
                         }
-                        else if (!button1.classList.contains('clicked')) {
-                            Swal.fire('ERROR', 'Turn on the ROSCORE', 'error');
+                        
+                        consecutiveNullReadings = 0;
+                        
+                        if (value >= -0.2 && value <= 0.1) {
+                            if (!stableStartTime) {
+                                stableStartTime = Date.now();
+                                console.log('Started stability timer');
+                            }
+                            
+                            const stableTime = Date.now() - stableStartTime;
+                            console.log('Stable for:', (stableTime/1000).toFixed(1), 'seconds');
+                            
+                            if (stableTime >= 2000) {
+                                console.log('Stability achieved');
+                                clearInterval(checkInterval);
+                                resolve(true);
+                                return;
+                            }
+                        } else {
+                            if (stableStartTime) {
+                                console.log('Stability lost, resetting timer');
+                                stableStartTime = null;
+                            }
                         }
-                        else{
-                            if (button.id === 'button3') {
-                                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                saveButtonState(button.id); // Save the button state
-                                sendFetchCommand(command1); // Send the first command
-                                // Display a popup immediately
-                                let timerInterval;
-                                Swal.fire({
-                                    title: 'Calibration. . .',
-                                    html: 'Wait for 5 seconds',
-                                    timer: 5000,
-                                    timerProgressBar: true,
-                                    didOpen: () => {
-                                        Swal.showLoading()
-                                        timerInterval = setInterval(() => {
-                                        }, 100)
-                                    },
-                                    willClose: () => {
-                                        clearInterval(timerInterval)
-                                    }
-                                }).then((result) => {
-                                    // if (result.dismiss === Swal.DismissReason.timer) {
-                                    //     console.log('I was closed by the timer')
-                                    // }
-                                })
-                                setTimeout(async () => {
-                                    // CHECK IMU CONNECTED
-                                    // const user_nuc = 'alterego-base';
-                                    // const ip_nuc = '192.168.0.70';
-                                    const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
-                                    // const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
-                                    const response = await fetch('/grep-command', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify({ command: grepCommand })
-                                    });
-                                    const data = await response.json();
+                    } catch (error) {
+                        console.error('Error in stability check:', error);
+                    }
+                }, POLLING_INTERVAL);
+            });
+        }
+       // First, add this new function above the event listeners
+        async function waitForArmMovement(robotName) {
+            return new Promise((resolve) => {
+                let checkInterval;
+                const POLLING_INTERVAL = 500;
 
-
-                                    const x = data.output; // The result of the SSH command
-                                    // Extract the number of IMUs connected
-                                    const numIMUs = parseInt(x.match(/\d+/)[0]);
-                                    // If the number of IMUs connected is 3, change the button color to green
-                                    if (numIMUs != 3) {
-                                        Swal.fire('ERROR', 'IMU not Connected', 'error');
-                                        resetButtonState(button.id); // Reset the button state
-                                        sendFetchCommand(command2); // Send the second command
-                                    }
-                                    else
-                                    {
-                                        Swal.fire('DONE', 'IMU Connected', 'success');
-                                    }
-                                }, 4000); // 5000 milliseconds = 5 seconds
-
-                            }
-                            //turn on the button4 only if the button1 has been clicked
-                            else if(button.id === 'button4'){
-                                // console.log('Button4 clicked')
-                                Swal.fire({
-                                    title: 'Warning',
-                                    text: 'Please make sure to press Button first',
-                                    icon: 'warning',
-                                    confirmButtonText: 'OK'
-                                }).then(() => {
-                                        // Display a popup after clicked "Ok"
-                                        sendFetchCommand(command1); // Send the first command
-                                        let timerInterval;
-                                        Swal.fire({
-                                            title: 'Activating cubes. . .',
-                                            html: 'Wait for few seconds',
-                                            timer: 8000,
-                                            timerProgressBar: true,
-                                            didOpen: () => {
-                                                Swal.showLoading()
-                                                timerInterval = setInterval(() => {
-                                                }, 100)
-                                            },
-                                            willClose: () => {
-                                                clearInterval(timerInterval)
-                                            }
-                                        }).then((result) => {
-                                            // if (result.dismiss === Swal.DismissReason.timer) {
-                                            //     console.log('I was closed by the timer')
-                                            // }
-                                        })
-                                    });
-                                setTimeout(async () => {
-                                    
-                                        // CHECK ARMS CONNECTED
-                                        const grepCommand = `grep 'is NOT active' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
-                                        // const sshCommand = `ssh ${user_nuc}@${ip_nuc} "grep 'is NOT active' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt"`;
-                                        const response = await fetch('/grep-command', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json'
-                                            },
-                                            body: JSON.stringify({ command: grepCommand })
-                                        });
-                                        const data = await response.json();
-                                    
-                                        const x = data.output; // The result of the SSH command
-                                        // Extract the number of Arms connected
-                                        const regex = /(cube|Neck|Hand).{3}/g;
-                                        const matches = x.match(regex);
-
-                                        
-                                        if (matches !== null) {
-                                            
-                                            // Swal.fire('Error', `Following cubes are not connected: ${matches}`, 'error');
-                                            const { value: accept } = await Swal.fire({
-                                            title: 'Did you push the button?',
-                                            text: `Following cubes are not connected: ${matches}`,
-                                            icon: 'error',
-                                            showCancelButton: true,
-                                            confirmButtonColor: '#3085d6',
-                                            cancelButtonColor: '#d33',
-                                            confirmButtonText: 'Yes, I am sure!'
-                                            })
-                                            if (!accept) {
-                                                // Clean the SystemCheck file
-                                                const cleanCommand = `sed -i '/is NOT /d' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
-                                                const cleanResponse = await fetch('/grep-command', {
-                                                    method: 'POST',
-                                                    headers: {
-                                                        'Content-Type': 'application/json'
-                                                    },
-                                                    body: JSON.stringify({ command: cleanCommand })
-                                                });
-                                                const cleanData = await cleanResponse.json();
-                                                resetButtonState(button.id); // Reset the button state
-                                                sendFetchCommand(command2); // Send the second command
-                                            }
-                                            else{
-                                                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                                saveButtonState(button.id); // Save the button state
-                                            }
-                                        }
-                                        else{
-                                            button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                            saveButtonState(button.id); // Save the button state
-                                            Swal.fire('DONE', 'Arms Activated', 'success');
-                                        }
-
-                                }, 8000); // 5000 milliseconds = 5 seconds
-
-
-                            }
-                            //turn on the button5 only if the button4 has been clicked
-                            else if(button.id === 'button5'){
-                                // console.log('Button5 clicked')
-                                const button4 = document.getElementById('button4');
-                                if (!button4.classList.contains('clicked')) {
-                                    Swal.fire('ERROR', 'Turn on the Body Activation first', 'error');
-                                }
-                                else {
-
-                                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                    saveButtonState(button.id); // Save the button state
-                                    sendFetchCommand(command1); // Send the first command
-
-                                }
-                            }
-                            //turn on the button7 only if the button3 has been clicked
-                            else if (button.id === 'button7') {
-                                // console.log('Button7 clicked')
-                                const button3 = document.getElementById('button3');
-                                if (!button3.classList.contains('clicked')) {
-                                    Swal.fire('ERROR', 'Turn on the IMU first', 'error');
-                                }
-                                else {
-                                    const { value: accept } = await Swal.fire({
-                                        title: 'Are you sure?',
-                                        text: "Put AlterEGO off the cart!",
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonColor: '#3085d6',
-                                        cancelButtonColor: '#d33',
-                                        confirmButtonText: 'Yes, I am sure!'
+                const loadingAlert = Swal.fire({
+                    title: 'Activating arms...',
+                    text: 'Waiting for movement',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        
+                        checkInterval = setInterval(async () => {
+                            try {
+                                const response = await fetch('/grep-command', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ 
+                                        command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
                                     })
-                                    if (accept) {
-                                        button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                        saveButtonState(button.id); // Save the button state
-                                        sendFetchCommand(command1); // Send the first command
+                                });
+                                
+                                const data = await response.json();
+                                if (data && data.output) {
+                                    // Extract numbers from output
+                                    const values = data.output.match(/[-]?\d*\.?\d+/g);
+                                    if (values) {
+                                        // Check if any value is non-zero
+                                        const hasMovement = values.some(v => Math.abs(parseFloat(v)) > 0.01);
+                                        console.log('Arm values:', values);
+                                        
+                                        if (hasMovement) {
+                                            console.log('Movement detected');
+                                            clearInterval(checkInterval);
+                                            Swal.close();
+                                            resolve(true);
+                                        }
                                     }
                                 }
-
+                            } catch (error) {
+                                console.error('Error checking arm movement:', error);
                             }
-                            else if(button.id === 'button6'){
-                                button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                                saveButtonState(button.id); // Save the button state
-                                sendFetchCommand(command1); // Send the first command
-                            }
-                        }
-
-                    }
-                    else {
-                        Swal.fire('ERROR', 'Base computer not connected', 'error'); //warning error success info question
-                    }
-                }
-            }
-            // Send command and update button state
-            function sendVideoCommand(command1, command2) {
-                const button = event.target;
-                if (button.classList.contains('clicked')) {
-                    resetButtonState(button.id); // Reset the button state
-                    sendFetchVideoCommand(command2); // Send the second command
-                } else {
-                    button.classList.add('clicked'); // Add the 'clicked' class to change the background color
-                    saveButtonState(button.id); // Save the button state
-                    sendFetchVideoCommand(command1); // Send the first command
-                }
-            }
-
-            // Function to send command using fetch
-            function sendFetchVideoCommand(command) {
-                fetch('/send-videocommand', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                        }, POLLING_INTERVAL);
                     },
-                    body: JSON.stringify({ command })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data);
-                        // Handle the response from the server if needed
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        // Handle any errors that occurred during the request
-                    });
-            }
-
-            // Update button states on page load
-            window.addEventListener('load', () => {
-                updateButtonState('button1');
-                updateButtonState('button2');
-                updateButtonState('button3');
-                updateButtonState('button4');
-                updateButtonState('button5');
-                updateButtonState('button6');
-                updateButtonState('button7');
-
-            });
-        </script>
-        
-
-        <!-- Sidemenu bar -->
-        <div id="mySidenav" class="sidenav">
-            <a href="settings.html" id="settingsLink">Settings</a>
-        </div>
-    
-        <span class="menu-btn" onclick="toggleNav()">&#9776; Menu</span>
-    
-        <script>
-
-            let settingsLocked = false;
-
-            window.addEventListener('load', () => {
-                const button1 = document.getElementById('button1');
-                const settingsLink = document.getElementById('settingsLink');
-
-                button1.addEventListener('click', () => {
-                    // Lock the settings when button1 is clicked
-                    settingsLocked = !settingsLocked;
-                });
-
-                settingsLink.addEventListener('click', (event) => {
-                    if (settingsLocked) {
-                        // Prevent access to the settings if they are locked
-                        event.preventDefault();
-                        Swal.fire('ERROR', 'Turn off all commands first', 'error');
+                    willClose: () => {
+                        clearInterval(checkInterval);
                     }
                 });
+
+                // Add timeout after 30 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    Swal.close();
+                    resolve(false);
+                }, 30000);
             });
-            function toggleNav() {
-                var mySidenav = document.getElementById("mySidenav");
-                if (mySidenav.style.width === "250px") {
-                    mySidenav.style.width = "0";
-                } else {
-                    mySidenav.style.width = "250px";
+        }
+        function sendFetchCommand(command) {
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        }
+        function pingRemoteComputer() {
+            return fetch('/ping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: '192.168.0.70' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ping successful:', data.success);
+                return data.success;
+            })
+            .catch(error => {
+                console.log('Ping failed:', error);
+                return false;
+            });
+        }
+        // Modifica gli event listener esistenti
+        powerBtn.addEventListener('click', async () => {
+            isPowered = !isPowered;
+            saveButtonState('isPowered', isPowered);
+
+            if (isPowered) {
+                // Check if remote computer is online
+                const isRemoteComputerOnline = await pingRemoteComputer();
+                if (!isRemoteComputerOnline) {
+                    Swal.fire('ERROR', 'Base computer not connected', 'error');
+                    isPowered = false;
+                    saveButtonState('isPowered', false);
+                    return;
                 }
+
+
+                
+                // Ottieni il nome del robot
+                const robotName = await getRobotName();
+
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.ROSCORE}`);
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.USB_DETECTOR}`);
+                   // Update UI
+                powerBtn.classList.add('on');
+                startBtn.disabled = false;
+                homeBtn.disabled = false;
+                
+                powerStatus.style.backgroundColor = '#22c55e';
+                document.querySelector('#powerStatus + span').textContent = 'Power: On';
+
+                // Initialize IMU
+                const { value: initIMU } = await Swal.fire({
+                    title: 'Calibration in Progress',
+                    text: "Do not touch the robot during calibration.",
+                    icon: 'warning',
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'OK, start calibration'
+                });
+
+
+                if (initIMU) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
+                    
+                    let timerInterval;
+                    await Swal.fire({
+                        title: 'Calibrating...',
+                        html: 'Wait for 5 seconds',
+                        timer: 5000,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading()
+                        }
+                    });
+
+                    // Check IMU connection
+                    const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
+                    const response = await fetch('/grep-command', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: grepCommand })
+                    });
+                    
+                    const data = await response.json();
+                    const numIMUs = parseInt(data.output.match(/\d+/)[0]);
+
+                    if (numIMUs !== 3) {
+                        await Swal.fire('ERROR', 'IMU not Connected', 'error');
+                        // Cleanup IMU
+                        sendFetchCommand(`source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill -a`);
+                    }
+                }
+
+
+                //Accendi il pilota
+                sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
+
+                
+                //Liberare spazio per muoversi all'indietro
+                const { value: initBackward } = await Swal.fire({
+                    title: 'Please ',
+                    text: "Clear the space behind the robot.",
+                    icon: 'warning',
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'OK'
+                });
+
+
+                if (initBackward) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+                    
+                    const loadingAlert = Swal.fire({
+                        title: 'Moving Backward...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                            
+                            // Check node status every second
+                            const checkInterval = setInterval(async () => {
+                                const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
+                                if (!isNodeActive) {
+                                    clearInterval(checkInterval);
+                                    Swal.close();
+                                }
+                            }, 1000);
+                        }
+                    });
+
+                    await loadingAlert;
+                }
+
+                // Start the loading state
+                const loadingAlert = Swal.fire({
+                    title: 'System Initialization',
+                    text: 'Raise the robot and wait...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const isStable = await checkStability(robotName);
+                if (isStable) {
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+                    
+                    // Remove the 5 second wait alert and just wait
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+                    const armsMoved = await waitForArmMovement(robotName);
+                    
+                    // Close the loading state
+                    Swal.close();
+                    
+                    if (!armsMoved) {
+                        await Swal.fire('Error', 'Arms did not activate properly', 'error');
+                        return;
+                    }
+                    
+                    sendFetchCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+                } else {
+                    // Close the loading state if stability check failed
+                    Swal.close();
+                    await Swal.fire('Error', 'Could not achieve stability', 'error');
+                }
+
+            } 
+            else {
+                // Power off sequence
+                sendFetchCommand('source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster && truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt');
+                
+                // Update UI
+                powerBtn.classList.remove('on');
+                startBtn.disabled = true;
+                homeBtn.disabled = true;
+                
+                isRunning = false;
+                saveButtonState('isRunning', false);
+                startBtn.classList.remove('running');
+                startBtn.innerHTML = '<i class="fas fa-play"></i><span>Start</span>';
+                powerStatus.style.backgroundColor = '#ef4444';
+                document.querySelector('#powerStatus + span').textContent = 'Power: Off';
+                systemStatus.style.backgroundColor = '#eab308';
+                document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
             }
-        </script>
+        });
+        startBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            saveButtonState('isRunning', isRunning);
+            if (isRunning) {
+                startBtn.classList.add('running');
+                startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+                systemStatus.style.backgroundColor = '#22c55e';
+                document.querySelector('#systemStatus + span').textContent = 'Status: Running';
+            } else {
+                startBtn.classList.remove('running');
+                startBtn.innerHTML = '<i class="fas fa-play"></i><span>Start</span>';
+                systemStatus.style.backgroundColor = '#eab308';
+                document.querySelector('#systemStatus + span').textContent = 'Status: Ready';
+            }
+        });
 
-
-    </body>
-
+    </script>
+</body>
 </html>

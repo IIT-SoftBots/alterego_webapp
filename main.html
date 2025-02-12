@@ -34,11 +34,6 @@
                 <i class="fas fa-home"></i>
                 <span>Home</span>
             </button>
-
-            <!-- <button id="resetBtn" class="control-button reset-button" >
-                <i class="fas fa-undo"></i>
-                <span>Reset</span>
-            </button> -->
         </div>
 
         <div class="status-panel">
@@ -325,6 +320,7 @@
                 }, 30000);
             });
         }
+        
         function sendFetchCommand(command) {
             fetch('/execute', {
                 method: 'POST',
