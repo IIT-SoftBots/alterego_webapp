@@ -1,5 +1,5 @@
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
-import { saveButtonState, loadButtonState, updateUI , loadComponent} from './utils.js';
+import { saveButtonState, loadButtonState, updateUI , loadComponent, updateBatteryGraphics} from './utils.js';
 import { sendCommand, getRobotName, pingRemoteComputer, checkNodeStatus, checkStability, checkMotorsActivation, checkMovementController, initializeIMU, handleBackwardMovement, initializeSystem} from './api.js';
 // Stato globale dell'applicazione
 let state = {

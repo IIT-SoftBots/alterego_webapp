@@ -57,3 +57,29 @@ export async function loadComponent(elementId, componentPath) {
         console.error(`Error loading component ${componentPath}:`, error);
     }
 }
+
+export function updateBatteryGraphics(isCharging, batteryLevel){
+    const batteryIcon = document.getElementById('batteryIcon');
+
+    if (isCharging){
+        batteryIcon.innerHTML = "<i class=\"fa fa-charging-station\"></i>";
+    }
+    else {
+        if (batteryLevel > 75){          //75-100%
+            batteryIcon.innerHTML = "<i class=\"fa fa-battery-full\"></i>";
+        }
+        else {
+            if (batteryLevel > 50){      //50-75%
+                batteryIcon.innerHTML = "<i class=\"fa fa-battery-three-quarters\"></i>";
+            }
+            else {
+                if (batteryLevel > 25){  //25-50%
+                    batteryIcon.innerHTML = "<i class=\"fa fa-battery-half\"></i>";
+                }
+                else {                  //0-25%
+                    batteryIcon.innerHTML = "<i class=\"fa fa-battery-quarter\"></i>";
+                }
+            }   
+        }
+    }    
+}
