@@ -1,6 +1,6 @@
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 import { saveButtonState, loadButtonState, updateUI , loadComponent, updateBatteryGraphics} from './utils.js';
-import { sendCommand, getRobotName, pingRemoteComputer, checkNodeStatus, checkStability, checkMotorsActivation, checkMovementController, initializeIMU, handleBackwardMovement, initializeSystem} from './api.js';
+import { sendCommand, getRobotName, initializeWebSocket, pingRemoteComputer, checkNodeStatus, checkStability, checkMotorsActivation, checkMovementController, initializeIMU, handleBackwardMovement, initializeSystem} from './api.js';
 // Stato globale dell'applicazione
 let state = {
     isPowered: false,
@@ -11,31 +11,7 @@ let socket;
 async function initApp() {
 
     // Connessione al WebSocket
-    socket = new WebSocket('ws://localhost:3000'); // Assicurati che l'URL corrisponda al tuo server
-    socket.onopen = () => {
-        console.log('WebSocket connected');
-        // Invia lo stato corrente al server quando la connessione è aperta
-        socket.send(JSON.stringify({ type: 'stateRequest' }));
-    };
-
-    socket.onmessage = (event) => {
-        // Gestisci i messaggi ricevuti dal server
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'stateUpdate') {
-            // Aggiorna lo stato dell'applicazione con i dati ricevuti dal server
-            state = { ...state, ...data.data };
-            updateUI(state); // Aggiorna l'interfaccia utente
-        }
-    };
-
-    socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-
-    socket.onclose = () => {
-        console.log('WebSocket disconnected');
-    };
+    socket = initializeWebSocket(state, updateUI);
 
     // Carica i components
     await loadComponent('button-grid', 'components/button-grid.html');

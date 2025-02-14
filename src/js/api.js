@@ -402,3 +402,31 @@ export async function checkMovementController(robotName) {
         });
     });
 }
+
+export function initializeWebSocket(state, updateUI) {
+    const socket = new WebSocket('ws://localhost:3000');
+    
+    socket.onopen = () => {
+        console.log('WebSocket connected');
+        socket.send(JSON.stringify({ type: 'stateRequest' }));
+    };
+
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'stateUpdate') {
+            Object.assign(state, data.data);
+            updateUI(state);
+        }
+    };
+
+    socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+        console.log('WebSocket disconnected');
+    };
+
+    return socket;
+}
