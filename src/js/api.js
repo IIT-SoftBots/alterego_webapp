@@ -1,6 +1,10 @@
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 
-// Funzione per eseguire comandi generici
+/**
+ * Executes a generic command through the server
+ * @param {string} command - The command to execute
+ * @returns {Promise<void>}
+ */
 export function sendCommand(command) {
     fetch('/execute', {
         method: 'POST',
@@ -12,8 +16,11 @@ export function sendCommand(command) {
     .then(() => console.log(`Command sent: ${command}`))
     .catch(error => console.error('Error sending command:', error));
 }
-
-// Funzione per ottenere il nome del robot
+/**
+ * Retrieves the robot name from .bashrc
+ * @returns {Promise<string>} The robot name
+ * @throws {Error} If robot name cannot be retrieved
+ */
 export async function getRobotName() {
     try {
         const response = await fetch('/grep-command', {
@@ -36,9 +43,16 @@ export async function getRobotName() {
     }
 }
 
-// Funzione per verificare lo stato di un nodo ROS
+/**
+ * Checks if a ROS node is currently running
+ * @param {string} nodeName - Name of the node to check
+ * @returns {Promise<boolean>} True if node is running, false otherwise
+ * @throws {Error} If node status cannot be checked
+ */
 export async function checkNodeStatus(nodeName) {
     try {
+        console.log("Checking the node in the list");
+
         const response = await fetch('/grep-command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -59,7 +73,10 @@ export async function checkNodeStatus(nodeName) {
     }
 }
 
-// Funzione per verificare la connessione con il computer remoto
+/**
+ * Checks connection with remote computer via ping
+ * @returns {Promise<boolean>} True if connection successful, false otherwise
+ */
 export async function pingRemoteComputer() {
     try {
         const response = await fetch('/ping', {
@@ -82,31 +99,52 @@ export async function pingRemoteComputer() {
     }
 }
 
-export async function initializeIMU(robotName) {
-    const { value: initIMU } = await Swal.fire({
-        title: 'Calibration in Progress',
-        text: "Do not touch the robot during calibration.",
-        icon: 'warning',
-        showCancelButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        confirmButtonText: 'OK, start calibration'
-    })
-    if (initIMU) {
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
+/**
+ * Initializes IMU sensors with calibration process
+ * Shows synchronized popups for calibration steps
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @param {string} robotName - Name of the robot
+ * @returns {Promise<boolean>} True if initialization successful
+ */
+export async function initializeIMU(ws, robotName) {
+    try {
+        // First popup - Calibration warning
+        const initIMU = await showSyncedPopup(ws, {
+            title: 'Calibration in Progress',
+            text: "Do not touch the robot during calibration.",
+            icon: 'warning',
+            showCancelButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: 'OK, start calibration'
+        });
         
-        let timerInterval;
-        await Swal.fire({
+        if (!initIMU) return false;
+
+        // Send IMU command
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
+        console.log('IMU initialization command sent');
+
+        // Add a small delay to ensure the first popup is fully closed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Second popup - Calibration progress
+        await showSyncedPopup(ws, {
             title: 'Calibrating...',
             html: 'Wait for 5 seconds',
             timer: 5000,
             timerProgressBar: true,
             allowOutsideClick: false,
             allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading()
+            showConfirmButton: false,
+            willOpen: () => {
+                if (Swal.getPopup()) {
+                    Swal.showLoading();
+                }
             }
-        })
+        });
+
+
         // Check IMU connection
         const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
         const response = await fetch('/grep-command', {
@@ -116,100 +154,239 @@ export async function initializeIMU(robotName) {
         });
         
         const data = await response.json();
-        const numIMUs = parseInt(data.output.match(/\d+/)[0])
+        const numIMUs = parseInt(data.output.match(/\d+/)?.[0] || '0');
+        
         if (numIMUs !== 3) {
-            await Swal.fire('ERROR', 'IMU not Connected', 'error');
+            await showSyncedPopup(ws, {
+                title: 'ERROR',
+                text: 'IMU not Connected',
+                icon: 'error'
+            });
+            
             // Cleanup IMU
-            sendCommand(`source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rosnode kill -a`);
+            sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill -a`);
             return false;
         }
-        return true;    
-    }   
-    return false;
-}
-
-export async function handleBackwardMovement(robotName) {
-    const { value: initBackward } = await Swal.fire({
-        title: 'Please ',
-        text: "Clear the space behind the robot.",
-        icon: 'warning',
-        showCancelButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        confirmButtonText: 'OK'
-    });
-
-    if (initBackward) {
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+        console.log('IMU Connected :', numIMUs);
         
-        const loadingAlert = Swal.fire({
-            title: 'Moving Backward...',
-            text: 'Please wait',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-                
-                // Check node status every second
-                const checkInterval = setInterval(async () => {
-                    const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
-                    if (!isNodeActive) {
-                        clearInterval(checkInterval);
-                        Swal.close();
-                    }
-                }, 1000);
-            }
+        return true;
+        
+    } catch (error) {
+        console.error('IMU initialization error:', error);
+        await showSyncedPopup(ws, {
+            title: 'Error',
+            text: 'IMU initialization failed',
+            icon: 'error'
         });
-
-        await loadingAlert;
-        return true;
-    }
-    return false;
-}
-
-export async function initializeSystem(robotName) {
-    // Start the loading state
-    Swal.fire({
-        title: 'System Initialization',
-        text: 'Raise the robot and wait...',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    const isStable = await checkStability(robotName);
-    if (isStable) {
-        // Avvia il controllo delle ruote
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        
-        // Attendi che il sistema si stabilizzi
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        Swal.close();
-        
-        // Attiva i motori delle braccia
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-        const motorsActivated = await checkMotorsActivation(robotName);                
-        if (!motorsActivated) {
-            await Swal.fire('Error', 'Motors initialization failed', 'error');
-            return false;
-        }
-        
-        // Avvia il controllo del movimento
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-        const controllerStarted = await checkMovementController(robotName);                
-        if (!controllerStarted) {
-            await Swal.fire('Error', 'Movement controller failed to start', 'error');
-            return false;
-        }
-        return true;
-    } else {
-        Swal.close();
-        await Swal.fire('Error', 'Could not achieve stability', 'error');
         return false;
     }
 }
+/**
+ * Handles backward movement of the robot
+ * Shows synchronized warning popup and monitors movement
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @param {string} robotName - Name of the robot
+ * @returns {Promise<boolean>} True if movement completed
+ */
+export async function handleBackwardMovement(ws, robotName) {
+    try {
+        console.log("Starting backward movement...");
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // First popup - Safety warning
+        await showSyncedPopup(ws, {
+            title: 'Safety Check',
+            text: "Clear the space behind the robot.",
+            icon: 'warning',
+            showCancelButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: 'OK, start calibration'
+        });
+        
+
+        // Send backward movement command
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+        
+        // Add a small delay before showing the progress popup
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        return new Promise((resolve) => {
+            let checkInterval;
+            
+            // Show progress popup with node status checking
+            Swal.fire({
+                title: 'Moving Backward...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // Start checking node status
+                    checkInterval = setInterval(async () => {
+                        const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
+                        if (!isNodeActive) {
+                            clearInterval(checkInterval);
+                            Swal.close();
+                            // Show completion popup
+                            await showSyncedPopup(ws, {
+                                title: 'Complete',
+                                text: 'Backward movement completed',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            resolve(true);
+                        }
+                    }, 1000);
+                },
+                willClose: () => {
+                    // Cleanup interval if popup is closed
+                    if (checkInterval) {
+                        clearInterval(checkInterval);
+                    }
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error('Error in backward movement:', error);
+        await showSyncedPopup(ws, {
+            title: 'Error',
+            text: 'Failed to move backward',
+            icon: 'error'
+        });
+        return false;
+    }
+}
+/**
+ * Initializes the robot system
+ * Checks stability, activates wheels and arms
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @param {string} robotName - Name of the robot
+ * @returns {Promise<boolean>} True if initialization successful
+ */
+export async function initializeSystem(ws, robotName) {
+    try {
+        // Start initialization popup
+        await showSyncedPopup(ws, {
+            title: 'System Initialization',
+            text: 'Raise the robot and wait...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                if (Swal.getPopup()) {
+                    Swal.showLoading();
+                }
+            }
+        });
+
+        await checkStability(robotName);
+
+        // Start wheels control
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+        
+        // Wait for system stabilization
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Activate arm motors
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+        
+        // Check motors activation with progress monitoring
+        const motorsActivated = await checkMotorsActivation(ws, robotName);
+        if (!motorsActivated) {
+            await showSyncedPopup(ws, {
+                title: 'Error',
+                text: 'Motors initialization failed',
+                icon: 'error'
+            });
+            return false;
+        }
+        
+        // Wait for system stabilization
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Start movement control
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+        
+
+        // Check movement controller with progress monitoring
+        await checkMovementController(ws);
+
+        // Wait for system stabilization
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Show success popup
+        await showSyncedPopup(ws, {
+            title: 'Success',
+            text: 'System initialization complete',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+        return true;
+
+    } catch (error) {
+        console.error('Error in system initialization:', error);
+        await showSyncedPopup(ws, {
+            title: 'Error',
+            text: 'System initialization failed',
+            icon: 'error'
+        });
+        return false;
+    }
+}
+// }export async function initializeSystem(ws, robotName) {
+//     // Start the loading state
+//     Swal.fire({
+//         title: 'System Initialization',
+//         text: 'Raise the robot and wait...',
+//         allowOutsideClick: false,
+//         allowEscapeKey: false,
+//         didOpen: () => {
+//             Swal.showLoading();
+//         }
+//     });
+
+//     const isStable = await checkStability(robotName);
+//     if (isStable) {
+//         // Avvia il controllo delle ruote
+//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+        
+//         // Attendi che il sistema si stabilizzi
+//         await new Promise(resolve => setTimeout(resolve, 5000));
+//         Swal.close();
+        
+//         // Attiva i motori delle braccia
+//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+//         const motorsActivated = await checkMotorsActivation(robotName);                
+//         if (!motorsActivated) {
+//             await Swal.fire('Error', 'Motors initialization failed', 'error');
+//             return false;
+//         }
+        
+//         // Avvia il controllo del movimento
+//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+//         const controllerStarted = await checkMovementController(robotName);                
+//         if (!controllerStarted) {
+//             await Swal.fire('Error', 'Movement controller failed to start', 'error');
+//             return false;
+//         }
+//         return true;
+//     } else {
+//         Swal.close();
+//         await Swal.fire('Error', 'Could not achieve stability', 'error');
+//         return false;
+//     }
+// }
+/**
+ * Retrieves value from a ROS topic with retry mechanism
+ * @param {string} topic - ROS topic path
+ * @returns {Promise<number|null>} Topic value or null if unavailable
+ */
 export async function getTopicValue(topic) {
     try {
         // Add retry mechanism
@@ -269,7 +446,11 @@ export async function getTopicValue(topic) {
     }
 }
 
-
+/**
+ * Checks robot stability using IMU readings
+ * @param {string} robotName - Name of the robot
+ * @returns {Promise<boolean>} True if robot is stable
+ */
 export async function checkStability(robotName) {
     return new Promise((resolve) => {
         let checkInterval;
@@ -333,76 +514,105 @@ export async function checkStability(robotName) {
         }, POLLING_INTERVAL);
     });
 }
-export async function checkMotorsActivation(robotName) {
-    let activationDetected = false;
-    
-    // Mostra l'alert di caricamento
-    Swal.fire({
-        title: 'Activating arms...',
-        text: 'Waiting for activation',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    // Funzione per controllare l'attivazione
-    async function checkActivation() {
-        try {
-            const response = await fetch('/grep-command', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
-                })
-            });
-            
-            const data = await response.json();
-            if (data?.output) {
-                const values = data.output.match(/[-]?\d*\.?\d+/g);
-                if (values?.some(v => Math.abs(parseFloat(v)) > 0.01)) {
-                    console.log('Activation detected:', values);
-                    return true;
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error('Error checking arm movement:', error);
-            return false;
-        }
-    }
-
-    // Prova per 30 secondi (60 tentativi con 500ms di intervallo)
-    for (let i = 0; i < 60 && !activationDetected; i++) {
-        activationDetected = await checkActivation();
-        if (!activationDetected) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-    }
-
-    // Chiudi l'alert e ritorna il risultato
-    Swal.close();
-    return activationDetected;
-}
-export async function checkMovementController(robotName) {
+/**
+ * Checks if arm motors are properly activated
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @param {string} robotName - Name of the robot
+ * @returns {Promise<boolean>} True if motors are activated
+ */
+export async function checkMotorsActivation(ws, robotName) {
     return new Promise((resolve) => {
-        Swal.fire({
+        let activationDetected = false;
+        let checkCount = 0;
+        const MAX_ATTEMPTS = 60; // 30 seconds (60 * 500ms)
+
+        // Show progress popup with activation checking
+        showSyncedPopup(ws, {
             title: 'Activating arms...',
+            text: 'Waiting for activation',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                if (Swal.getPopup()) {
+                    Swal.showLoading();
+                }
+
+                // Start checking activation in intervals
+                const checkInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch('/grep-command', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data?.output) {
+                            const values = data.output.match(/[-]?\d*\.?\d+/g);
+                            if (values?.some(v => Math.abs(parseFloat(v)) > 0.01)) {
+                                console.log('Activation detected:', values);
+                                clearInterval(checkInterval);
+                                Swal.close();
+                                resolve(true);
+                                return;
+                            }
+                        }
+
+                        checkCount++;
+                        if (checkCount >= MAX_ATTEMPTS) {
+                            clearInterval(checkInterval);
+                            Swal.close();
+                            resolve(false);
+                        }
+                    } catch (error) {
+                        console.error('Error checking arm movement:', error);
+                        checkCount++;
+                    }
+                }, 500);
+
+                // Cleanup on popup close
+                Swal.getPopup().addEventListener('swal-closed', () => {
+                    clearInterval(checkInterval);
+                    resolve(false);
+                });
+            }
+        });
+    });
+}
+/**
+ * Checks if movement controller is running
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @returns {Promise<boolean>} True if controller is active
+ */
+export async function checkMovementController(ws) {
+    return new Promise((resolve) => {
+        showSyncedPopup(ws, {
+            title: 'Activating movement...',
             text: 'Please wait...',
             timer: 5000,
             timerProgressBar: true,
             allowOutsideClick: false,
             allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
+            showConfirmButton: false,
+            willOpen: () => {
+                if (Swal.getPopup()) {
+                    Swal.showLoading();
+                }
             }
         }).then(() => {
             resolve(true);
         });
     });
 }
-
+/**
+ * Initializes WebSocket connection for state synchronization
+ * @param {Object} state - Current application state
+ * @param {Function} updateUI - Function to update UI with new state
+ * @returns {WebSocket} Configured WebSocket instance
+ */
 export function initializeWebSocket(state, updateUI) {
     const socket = new WebSocket('ws://localhost:3000');
     
@@ -429,4 +639,50 @@ export function initializeWebSocket(state, updateUI) {
     };
 
     return socket;
+}
+/**
+ * Shows a synchronized popup across all connected clients
+ * @param {WebSocket} ws - WebSocket connection
+ * @param {Object} popupData - SweetAlert2 configuration object
+ * @param {string} popupData.title - Popup title
+ * @param {string} popupData.text - Popup message
+ * @param {string} [popupData.icon] - Popup icon type
+ * @param {boolean} [popupData.showCancelButton] - Show cancel button
+ * @param {boolean} [popupData.allowOutsideClick] - Allow clicking outside
+ * @param {boolean} [popupData.allowEscapeKey] - Allow ESC key to close
+ * @returns {Promise<boolean>} True if confirmed, false otherwise
+ */
+export function showSyncedPopup(ws, popupData) {
+    // Evita duplicati
+    if (Swal.isVisible()) return Promise.resolve(false);
+    
+    // Notifica altri client
+    ws.send(JSON.stringify({
+        type: 'popup',
+        data: popupData
+    }));
+
+    // Visualizza il popup localmente e ritorna la Promise
+    return Swal.fire({
+        ...popupData,
+        // Handler per la chiusura del popup
+        didClose: () => {
+            // Notifica la chiusura agli altri client
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'closePopup'
+                }));
+            }
+        }
+    }).then((result) => {
+        // Gestione click sul pulsante OK
+        if (result.isConfirmed) {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'closePopup'
+                }));
+            }
+        }
+        return result.isConfirmed;
+    });
 }

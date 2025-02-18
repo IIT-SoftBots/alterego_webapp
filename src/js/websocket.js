@@ -1,37 +1,100 @@
+// websocket.js
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 
-// In-memory state storage
+// In-memory state storage con aggiunta di UI state
 let pageState = {
     isPowered: false,
     isRunning: false,
-    pipelineState: {}
+    pipelineState: {},
+    uiState: {
+        activePopup: null,
+        notifications: []
+    }
 };
 
-// Percorso file per persistenza stato
 const stateFile = path.join(__dirname, 'state.json');
 
-// Carica lo stato salvato all'avvio del server
 if (fs.existsSync(stateFile)) {
     pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
 }
 
-// WebSocket setup
 const wss = new WebSocket.Server({ noServer: true });
 
 wss.on('connection', (ws) => {
     console.log("🔗 Nuovo client connesso");
     
-    // Invia lo stato attuale solo se il WebSocket è pronto
     if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'stateUpdate', data: pageState }));
+        ws.send(JSON.stringify({ 
+            type: 'stateUpdate', 
+            data: pageState 
+        }));
     }
 
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
-            pageState = { ...pageState, ...data };
+            
+            switch(data.type) {
+                case 'requestInitialState':
+                    // Invia immediatamente lo stato corrente al nuovo client
+                    ws.send(JSON.stringify({ 
+                        type: 'stateUpdate', 
+                        data: pageState 
+                    }));
+                    break;
+                    
+                case 'stateUpdate':
+                    if (data.data) {
+                        pageState = { 
+                            ...pageState, 
+                            ...data.data,
+                            uiState: {
+                                ...pageState.uiState,
+                                ...(data.data.uiState || {})
+                            }
+                        };
+                    }
+                    break;
+                    
+                case 'popup':
+                    if (data.data) {
+                        pageState = {
+                            ...pageState,
+                            uiState: {
+                                ...pageState.uiState,
+                                activePopup: data.data
+                            }
+                        };
+                    }
+                    break;
+                    
+                case 'notification':
+                    if (data.data) {
+                        const notifications = [...pageState.uiState.notifications, data.data].slice(-10);
+                        pageState = {
+                            ...pageState,
+                            uiState: {
+                                ...pageState.uiState,
+                                notifications
+                            }
+                        };
+                    }
+                    break;
+                    
+                case 'closePopup':
+                    pageState = {
+                        ...pageState,
+                        uiState: {
+                            ...pageState.uiState,
+                            activePopup: null
+                        }
+                    };
+                    broadcastState();  // Assicurati che lo stato venga propagato
+                    break;
+            }
+            
             broadcastState();
         } catch (error) {
             console.error("❌ Errore parsing WebSocket message:", error);
@@ -43,29 +106,28 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Funzione per salvare lo stato su file
 function saveState() {
     fs.writeFileSync(stateFile, JSON.stringify(pageState, null, 2));
 }
 
-// Funzione per inviare lo stato a tutti i client connessi
 function broadcastState() {
-    saveState(); // Salva lo stato prima di inviarlo ai client
+    saveState();
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'stateUpdate', data: pageState }));
+            client.send(JSON.stringify({ 
+                type: 'stateUpdate', 
+                data: pageState 
+            }));
         }
     });
 }
 
-// Ping periodico per mantenere attiva la connessione
 setInterval(() => {
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.ping();
         }
     });
-}, 30000); // Ping ogni 30 secondi
+}, 30000);
 
-// Esportiamo WebSocket Server e funzione per gestire upgrade
 module.exports = { wss, broadcastState, pageState };
