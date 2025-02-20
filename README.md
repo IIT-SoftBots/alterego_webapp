@@ -44,3 +44,47 @@ Contributions are welcome! Please submit a pull request or open an issue for any
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+---------------------------------------------------- Funge ma a cshermo intero
+nano ~/.local/share/applications/webapp.desktop
+
+Incolla questo codice:
+
+[Desktop Entry]
+Type=Application
+Name=WebApp
+Exec=firefox --kiosk http://192.168.0.71
+Icon=firefox
+Terminal=false
+Categories=Utility;
+
+Lanciala da Applicazioni oppure con:
+gtk-launch webapp
+
+
+---------------------------------------------------- funge bene
+sudo apt install nodejs npm -y
+npm install -g nativefier
+
+
+nativefier --name "WebApp" --single-instance --disable-dev-tools --disable-context-menu http://192.168.0.71
+
+./WebApp-linux-x64/WebApp
+
+(Opzionale) Per aggiungerla al menu delle applicazioni:
+
+Copia la cartella in /opt/
+Crea un file .desktop in ~/.local/share/applications/
+
+
+----------------------------------------------------
+nano ~/.config/autostart-webapp.sh
+
+
+#!/bin/bash
+source ~/.bashrc  # Carica gli alias
+webapp &          # Esegue il primo alias in background
+sleep 5           # Aspetta un po'
+webapp_gui &      # Esegue il secondo alias in background
+
+chmod +x ~/.config/autostart-webapp.sh

@@ -269,6 +269,8 @@ export async function handleBackwardMovement(ws, robotName) {
  */
 export async function initializeSystem(ws, robotName) {
     try {
+        // Wait for system stabilization
+        await new Promise(resolve => setTimeout(resolve, 2000));
         // Start initialization popup
         await showSyncedPopup(ws, {
             title: 'System Initialization',
@@ -339,49 +341,7 @@ export async function initializeSystem(ws, robotName) {
         return false;
     }
 }
-// }export async function initializeSystem(ws, robotName) {
-//     // Start the loading state
-//     Swal.fire({
-//         title: 'System Initialization',
-//         text: 'Raise the robot and wait...',
-//         allowOutsideClick: false,
-//         allowEscapeKey: false,
-//         didOpen: () => {
-//             Swal.showLoading();
-//         }
-//     });
 
-//     const isStable = await checkStability(robotName);
-//     if (isStable) {
-//         // Avvia il controllo delle ruote
-//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        
-//         // Attendi che il sistema si stabilizzi
-//         await new Promise(resolve => setTimeout(resolve, 5000));
-//         Swal.close();
-        
-//         // Attiva i motori delle braccia
-//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-//         const motorsActivated = await checkMotorsActivation(robotName);                
-//         if (!motorsActivated) {
-//             await Swal.fire('Error', 'Motors initialization failed', 'error');
-//             return false;
-//         }
-        
-//         // Avvia il controllo del movimento
-//         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-//         const controllerStarted = await checkMovementController(robotName);                
-//         if (!controllerStarted) {
-//             await Swal.fire('Error', 'Movement controller failed to start', 'error');
-//             return false;
-//         }
-//         return true;
-//     } else {
-//         Swal.close();
-//         await Swal.fire('Error', 'Could not achieve stability', 'error');
-//         return false;
-//     }
-// }
 /**
  * Retrieves value from a ROS topic with retry mechanism
  * @param {string} topic - ROS topic path

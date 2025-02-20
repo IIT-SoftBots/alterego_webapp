@@ -1,5 +1,5 @@
 {
-  "isPowered": false,
+  "isPowered": true,
   "isRunning": false,
   "pipelineState": {},
   "type": "stateRequest",
