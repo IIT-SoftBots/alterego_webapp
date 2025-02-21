@@ -41,7 +41,7 @@ function connectSSH() {
 
     return new Promise((resolve, reject) => {
         const connectionParams = {
-            host: '192.168.0.70',
+            host: '192.168.0.110',
             username: 'alterego-base',
             privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
         };

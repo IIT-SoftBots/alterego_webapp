@@ -27,7 +27,7 @@ let ws;
  * Gestisce gli aggiornamenti di stato e la riconnessione automatica
  */
 function initWebSocket() {
-    ws = new WebSocket(`ws://${window.location.host}`);
+    ws = new WebSocket(`ws://localhost:3000`);
     
     // Handler per i messaggi in arrivo
     ws.onmessage = (event) => {

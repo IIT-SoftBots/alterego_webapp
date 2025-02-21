@@ -84,7 +84,7 @@ export async function pingRemoteComputer() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ ip: '192.168.0.70' })
+            body: JSON.stringify({ ip: '192.168.0.110' })
         });
         
         if (!response.ok) {
@@ -146,7 +146,7 @@ export async function initializeIMU(ws, robotName) {
 
 
         // Check IMU connection
-        const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt`;
+        const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_Adriano/alterego_robot/config/SystemCheck.txt`;
         const response = await fetch('/grep-command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

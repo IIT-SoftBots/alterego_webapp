@@ -36,6 +36,11 @@ alterego-webapp
    npm install
    ```
 
+
+sudo apt install nodejs npm
+
+
+
 ## Usage
 To start the application, open `src/index.html` in a web browser. The application will load the necessary resources and display the control panel interface.
 
@@ -44,6 +49,29 @@ Contributions are welcome! Please submit a pull request or open an issue for any
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
+-- procedura per il setup della webapp
+
+sudo apt update
+sudo apt install nginx -y
+
+-- apri il file
+sudo nano /etc/nginx/sites-available/default
+- commenta tutto 
+- aggiungi questo
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://localhost:3000; # Cambia con la porta della tua web app
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+-- riavvia
+sudo systemctl restart nginx
 
 ---------------------------------------------------- Funge ma a schermo intero
 nano ~/.local/share/applications/webapp.desktop
