@@ -7,9 +7,12 @@ import { showSyncedPopup } from '../api.js';
 export async function handleConfigButtonClick(ws, state) {
     showSyncedPopup(ws, {
         title: 'Configuration',
-        text: 'Configuration panel coming soon',
+        text: 'Do you want to close the app?',
         icon: 'info',
         showConfirmButton: true,
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
+        preConfirm: () => {
+            ws.send(JSON.stringify({ type: 'closeApp' })); // Invia un messaggio di chiusura al server
+        }
     });
 }

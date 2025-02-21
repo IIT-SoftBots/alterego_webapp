@@ -2,6 +2,7 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process'); // Importa exec
 
 // In-memory state storage con aggiunta di UI state
 let pageState = {
@@ -92,6 +93,25 @@ wss.on('connection', (ws) => {
                         }
                     };
                     broadcastState();  // Assicurati che lo stato venga propagato
+                    break;
+                case 'closeApp':
+                    // Esegui il comando per chiudere la finestra del browser
+                    exec('pkill -f firefox', (error, stdout, stderr) => {
+                        if (error) {
+                            console.error(`Error closing Firefox: ${error}`);
+                        } else {
+                            console.log('Firefox closed successfully');
+                        }
+                
+                        // Esegui il comando per chiudere il processo sulla porta 3000
+                        exec('lsof -t -i :3000 | xargs kill -9', (error, stdout, stderr) => {
+                            if (error) {
+                                console.error(`Error closing process on port 3000: ${error}`);
+                                return;
+                            }
+                            console.log('Process on port 3000 closed successfully');
+                        });
+                    });
                     break;
             }
             

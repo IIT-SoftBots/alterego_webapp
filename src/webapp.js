@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
 
-
 // Importa WebSocket
 const { wss } = require('./js/websocket');
 
@@ -148,7 +147,6 @@ app.post('/ping', (req, res) => {
     });
 });
 
-
 // Error handling
 app.use((err, req, res, next) => {
     console.error('Application error:', err);
@@ -164,8 +162,3 @@ process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
     process.exit(1);
 });
-
-// Start server
-// app.listen(port, '0.0.0.0', () => {
-//     console.log(`Server running at http://0.0.0.0:${port}`);
-// });
