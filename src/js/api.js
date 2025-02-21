@@ -271,64 +271,29 @@ export async function initializeSystem(ws, robotName) {
     try {
         // Wait for system stabilization
         await new Promise(resolve => setTimeout(resolve, 2000));
-        // Start initialization popup
-        await showSyncedPopup(ws, {
-            title: 'System Initialization',
-            text: 'Raise the robot and wait...',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            willOpen: () => {
-                if (Swal.getPopup()) {
-                    Swal.showLoading();
-                }
-            }
-        });
-
-        await checkStability(robotName);
+        
+        // Check stability
+        const isStable = await checkStability(ws, robotName);
+        if (!isStable) return false;
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        
-        // Wait for system stabilization
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(r => setTimeout(r, 500));
         
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
         
-        // Check motors activation with progress monitoring
+        // Check motors activation
         const motorsActivated = await checkMotorsActivation(ws, robotName);
-        if (!motorsActivated) {
-            await showSyncedPopup(ws, {
-                title: 'Error',
-                text: 'Motors initialization failed',
-                icon: 'error'
-            });
-            return false;
-        }
+        if (!motorsActivated) return false;
         
-        // Wait for system stabilization
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
+        await new Promise(r => setTimeout(r, 500));
+        
         // Start movement control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+        const movementInitialized = await checkMovementController(ws);
+        if (!movementInitialized) return false;
         
-
-        // Check movement controller with progress monitoring
-        await checkMovementController(ws);
-
-        // Wait for system stabilization
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        // Show success popup
-        await showSyncedPopup(ws, {
-            title: 'Success',
-            text: 'System initialization complete',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        });
-
         return true;
 
     } catch (error) {
@@ -341,7 +306,6 @@ export async function initializeSystem(ws, robotName) {
         return false;
     }
 }
-
 /**
  * Retrieves value from a ROS topic with retry mechanism
  * @param {string} topic - ROS topic path
@@ -411,68 +375,108 @@ export async function getTopicValue(topic) {
  * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if robot is stable
  */
-export async function checkStability(robotName) {
-    return new Promise((resolve) => {
-        let checkInterval;
-        let consecutiveNullReadings = 0;
-        const MAX_NULL_READINGS = 5;
-        const POLLING_INTERVAL = 500;
-        
-        let stableStartTime = null;
-        let lastCheckTime = Date.now();
-        
-        checkInterval = setInterval(async () => {
-            const now = Date.now();
-            if (now - lastCheckTime < POLLING_INTERVAL) {
-                return;
-            }
-            lastCheckTime = now;
+export async function checkStability(ws, robotName) {
+    try {
+        console.log("Starting stability check...");
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-            try {
-                const value = await getTopicValue(`/${robotName}/imu/RPY`);
-                console.log('IMU value:', value, 'Time:', new Date().toISOString());
-                
-                if (value === null) {
-                    consecutiveNullReadings++;
-                    console.warn(`Null reading #${consecutiveNullReadings}`);
-                    
-                    if (consecutiveNullReadings >= MAX_NULL_READINGS) {
-                        console.error('Too many failed readings, stopping stability check');
+        return new Promise((resolve) => {
+            let checkInterval;
+            let consecutiveNullReadings = 0;
+            const MAX_NULL_READINGS = 5;
+            const POLLING_INTERVAL = 500;
+            
+            let stableStartTime = null;
+            
+            // Show progress popup with stability checking
+            showSyncedPopup(ws, {
+                title: 'Checking Stability...',
+                text: 'Please wait and raise the robot',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    if (Swal.getPopup()) {
+                        Swal.showLoading();
+                    }
+                    // Start checking stability
+                    checkInterval = setInterval(async () => {
+                        try {
+                            const value = await getTopicValue(`/${robotName}/imu/RPY`);
+                            console.log('IMU value:', value, 'Time:', new Date().toISOString());
+                            
+                            if (value === null) {
+                                consecutiveNullReadings++;
+                                console.warn(`Null reading #${consecutiveNullReadings}`);
+                                
+                                if (consecutiveNullReadings >= MAX_NULL_READINGS) {
+                                    console.error('Too many failed readings');
+                                    clearInterval(checkInterval);
+                                    Swal.close();
+                                    await showSyncedPopup(ws, {
+                                        title: 'Error',
+                                        text: 'Stability check failed - No readings',
+                                        icon: 'error'
+                                    });
+                                    resolve(false);
+                                    return;
+                                }
+                                return;
+                            }
+                            
+                            consecutiveNullReadings = 0;
+                            
+                            if (value >= -0.2 && value <= 0.1) {
+                                if (!stableStartTime) {
+                                    stableStartTime = Date.now();
+                                    console.log('Started stability timer');
+                                }
+                                
+                                const stableTime = Date.now() - stableStartTime;
+                                console.log('Stable for:', (stableTime/1000).toFixed(1), 'seconds');
+                                
+                                if (stableTime >= 2000) {
+                                    console.log('Stability achieved');
+                                    clearInterval(checkInterval);
+                                    Swal.close();
+                                    await showSyncedPopup(ws, {
+                                        title: 'Complete',
+                                        text: 'Stability check successful',
+                                        icon: 'success',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    });
+                                    resolve(true);
+                                    return;
+                                }
+                            } else {
+                                if (stableStartTime) {
+                                    console.log('Stability lost, resetting timer');
+                                    stableStartTime = null;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error in stability check:', error);
+                        }
+                    }, POLLING_INTERVAL);
+                },
+                willClose: () => {
+                    if (checkInterval) {
                         clearInterval(checkInterval);
-                        resolve(false);
-                        return;
-                    }
-                    return;
-                }
-                
-                consecutiveNullReadings = 0;
-                
-                if (value >= -0.2 && value <= 0.1) {
-                    if (!stableStartTime) {
-                        stableStartTime = Date.now();
-                        console.log('Started stability timer');
-                    }
-                    
-                    const stableTime = Date.now() - stableStartTime;
-                    console.log('Stable for:', (stableTime/1000).toFixed(1), 'seconds');
-                    
-                    if (stableTime >= 2000) {
-                        console.log('Stability achieved');
-                        clearInterval(checkInterval);
-                        resolve(true);
-                        return;
-                    }
-                } else {
-                    if (stableStartTime) {
-                        console.log('Stability lost, resetting timer');
-                        stableStartTime = null;
                     }
                 }
-            } catch (error) {
-                console.error('Error in stability check:', error);
-            }
-        }, POLLING_INTERVAL);
-    });
+            });
+        });
+
+    } catch (error) {
+        console.error('Error in stability check:', error);
+        await showSyncedPopup(ws, {
+            title: 'Error',
+            text: 'Stability check failed',
+            icon: 'error'
+        });
+        return false;
+    }
 }
 /**
  * Checks if arm motors are properly activated
