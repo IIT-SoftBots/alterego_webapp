@@ -54,11 +54,11 @@ export async function handlePowerButtonClick(ws, state) {
                 return;
             }
 
-            // // // Initialize system (accende ruote, attiva braccia (activation e movement))
-            // const systemInitialized = await initializeSystem(ws, robotName);
-            // if (!systemInitialized) {
-            //     return;
-            // }
+            // Initialize system (accende ruote, attiva braccia (activation e movement))
+            const systemInitialized = await initializeSystem(ws, robotName);
+            if (!systemInitialized) {
+                return;
+            }
         } else {
             // Spegni il sistema
             sendCommand(ROS_COMMANDS.CLEANUP);

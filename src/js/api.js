@@ -278,19 +278,24 @@ export async function initializeSystem(ws, robotName) {
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 2000));
         
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
         
+        console.log("Pre Checking arm motors activation...");
+
         // Check motors activation
         const motorsActivated = await checkMotorsActivation(ws, robotName);
         if (!motorsActivated) return false;
         
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 2000));
+        console.log("Pre Checking arm motors movement...");
         
         // Start movement control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+        await new Promise(r => setTimeout(r, 2000));
+        
         const movementInitialized = await checkMovementController(ws);
         if (!movementInitialized) return false;
         
@@ -489,7 +494,7 @@ export async function checkMotorsActivation(ws, robotName) {
         let activationDetected = false;
         let checkCount = 0;
         const MAX_ATTEMPTS = 60; // 30 seconds (60 * 500ms)
-
+        console.log("Checking arm motors activation...");
         // Show progress popup with activation checking
         showSyncedPopup(ws, {
             title: 'Activating arms...',
