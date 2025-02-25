@@ -61,6 +61,29 @@ function connectSSH() {
     });
 }
 
+function executeLocal(command) {
+    return new Promise((resolve, reject) => {
+        exec(`bash -c '${command}'`, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+}
+
+app.post('/execute-local', async (req, res) => {
+    try {
+        const output = await executeLocal(req.body.command);
+        res.json({ success: true, output });
+    } catch (error) {
+        console.error('Execute local error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
 function execute(command) {
     return new Promise((resolve, reject) => {
         sshClient.exec(command, (err, stream) => {

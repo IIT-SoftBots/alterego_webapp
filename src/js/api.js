@@ -16,6 +16,24 @@ export function sendCommand(command) {
     .then(() => console.log(`Command sent: ${command}`))
     .catch(error => console.error('Error sending command:', error));
 }
+
+/**
+ * Executes a generic command on the local computer through the server
+ * @param {string} command - The command to execute
+ * @returns {Promise<void>}
+ */
+export function sendLocalCommand(command) {
+    fetch('/execute-local', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+    })
+    .then(() => console.log(`Local command sent: ${command}`))
+    .catch(error => console.error('Error sending local command:', error));
+}
+
 /**
  * Retrieves the robot name from .bashrc
  * @returns {Promise<string>} The robot name
@@ -296,9 +314,11 @@ export async function initializeSystem(ws, robotName) {
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
         await new Promise(r => setTimeout(r, 2000));
         
-        const movementInitialized = await checkMovementController(ws);
-        if (!movementInitialized) return false;
         
+        const movementInitialized = await checkMovementController(ws);
+        if (!movementInitialized) return false;       
+
+
         return true;
 
     } catch (error) {

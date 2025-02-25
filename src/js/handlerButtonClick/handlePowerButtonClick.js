@@ -1,4 +1,4 @@
-import { sendCommand, getRobotName, pingRemoteComputer, initializeIMU, handleBackwardMovement, initializeSystem} from '../api.js';
+import { sendCommand,sendLocalCommand, getRobotName, pingRemoteComputer, initializeIMU, handleBackwardMovement, initializeSystem} from '../api.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from '../constants.js';
 
 /**
@@ -48,6 +48,17 @@ export async function handlePowerButtonClick(ws, state) {
             // // Accendi il pilota
             sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
 
+            // Start FACE EXPRESSION
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+
+            // Start FACE TRACKING
+            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+            await new Promise(r => setTimeout(r, 2000));
+
+            // Start FACE TRACKING
+            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+            await new Promise(r => setTimeout(r, 2000));
+            
             // // Procede in retro quanto basta per uscire dalla stazione di ricarica wireless
             const backwardComplete =  await handleBackwardMovement(ws, robotName);
             if (!backwardComplete) {
@@ -59,6 +70,7 @@ export async function handlePowerButtonClick(ws, state) {
             if (!systemInitialized) {
                 return;
             }
+
         } else {
             // Spegni il sistema
             sendCommand(ROS_COMMANDS.CLEANUP);

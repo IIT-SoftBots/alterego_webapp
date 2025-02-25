@@ -1,6 +1,7 @@
 // ROS related commands
 export const ROS_COMMANDS = {
     SETUP: 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash',
+    SETUP_LOCAL: 'source ~/.bashrc && source /opt/ros/noetic/setup.bash && source ~/AlterEGO_Adriano/catkin_ws/devel/setup.bash',
     CLEANUP: 'source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster',
     CLEAR_LOG: 'truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt'
 };
@@ -14,7 +15,10 @@ export const LAUNCH_COMMANDS = {
     BACKWARD: 'roslaunch alterego_backward_controller backward.launch AlterEgoVersion:=2',
     BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2',
     BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2',
-    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2'
+    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
+    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch  AlterEgoVersion:=2',
+    FACE_RECOGNITION: 'roslaunch alterego_face_recognition face_recognition.launch',
+    FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch'
 };
 
 // UI States
