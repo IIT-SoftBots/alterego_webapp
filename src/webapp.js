@@ -10,6 +10,7 @@ const { wss } = require('./js/websocket');
 
 const app = express();
 const port = 3000;
+const NUC_BASE_IP = '192.168.178.80';
 
 // Middleware setup
 app.use(bodyParser.json());
@@ -40,7 +41,7 @@ function connectSSH() {
 
     return new Promise((resolve, reject) => {
         const connectionParams = {
-            host: '192.168.0.110',
+            host: NUC_BASE_IP,
             username: 'alterego-base',
             privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
         };

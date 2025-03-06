@@ -1,3 +1,4 @@
+import { NUC_BASE_IP, ROS_CATKIN_WS, ROS_SRC_FOLDER } from './constants.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 
 /**
@@ -102,7 +103,7 @@ export async function pingRemoteComputer() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ ip: '192.168.0.110' })
+            body: JSON.stringify({ ip: NUC_BASE_IP })
         });
         
         if (!response.ok) {
@@ -164,7 +165,7 @@ export async function initializeIMU(ws, robotName) {
 
 
         // Check IMU connection
-        const grepCommand = `grep 'Number of connected' ~/catkin_ws/src/AlterEGO_Adriano/alterego_robot/config/SystemCheck.txt`;
+        const grepCommand = `grep 'Number of connected' ` + ROS_CATKIN_WS + ROS_SRC_FOLDER +`/alterego_robot/config/SystemCheck.txt`;
         const response = await fetch('/grep-command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -212,7 +213,7 @@ export async function handleBackwardMovement(ws, robotName) {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // First popup - Safety warning
-        await showSyncedPopup(ws, {
+/*        await showSyncedPopup(ws, {
             title: 'Safety Check',
             text: "Clear the space behind the robot.",
             icon: 'warning',
@@ -221,7 +222,7 @@ export async function handleBackwardMovement(ws, robotName) {
             allowEscapeKey: false,
             confirmButtonText: 'OK, start calibration'
         });
-        
+*/        
 
         // Send backward movement command
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
@@ -346,7 +347,7 @@ export async function getTopicValue(topic) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 ${topic}`
+                        command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 ${topic}`
                     })
                 });
                 
@@ -534,7 +535,7 @@ export async function checkMotorsActivation(ws, robotName) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
-                                command: `source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
+                                command: `source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
                             })
                         });
                         

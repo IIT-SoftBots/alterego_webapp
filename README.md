@@ -12,6 +12,7 @@ alterego-webapp
 │   │   ├── constants.js    # Constants used throughout the application
 │   │   ├── utils.js        # Utility functions for data manipulation
 │   │   ├── api.js          # Functions for making API calls
+│   │   ├── workflow.js     # Functions to handle the whole workflow
 │   │   └── main.js         # Main JavaScript file for initialization
 │   ├── css
 │   │   └── main.css        # Styles for the web application
@@ -81,7 +82,7 @@ Incolla questo codice:
 [Desktop Entry]
 Type=Application
 Name=WebApp
-Exec=firefox --kiosk http://192.168.0.71
+Exec=firefox --kiosk http://localhost:3000
 Icon=firefox
 Terminal=false
 Categories=Utility;

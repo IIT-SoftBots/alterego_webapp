@@ -1,21 +1,27 @@
 <div class="button-grid">
-    <button id="powerBtn" class="control-button power-button">
+    <button id="mainBtn" class="control-button main-button">
+        <i class="fas fa-circle-play"></i>
+        <span>Start Robot</span>
+    </button>
+  
+    <button id="secondBtn" class="control-button second-button" disabled>
         <i class="fas fa-power-off"></i>
-        <span>Power</span>
+        <span>Power Off</span>
     </button>
-    
-    <button id="startBtn" class="control-button start-button" disabled>
-        <i class="fas fa-play"></i>
-        <span>Start</span>
-    </button>
+</div>
 
-    <button id="configBtn" class="control-button config-button" >
-        <i class="fas fa-cog"></i>
-        <span>Config</span>
-    </button>
-
-    <button id="homeBtn" class="control-button home-button" disabled>
-        <i class="fas fa-home"></i>
-        <span>Home</span>
-    </button>
+<div id="popupOverlay" class="popup-overlay"></div>
+<div id="popup" class="popup">
+    <h3 style="text-align: center;">Admin Menu</h3>
+    <div class="button-grid">
+        <button id="settingsBtn" class="control-button settings-button">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+        
+        <button id="closeBtn" class="control-button close-button">
+            <i class="fas fa-close"></i>
+            <span>Close App</span>
+        </button>
+    </div>    
 </div>

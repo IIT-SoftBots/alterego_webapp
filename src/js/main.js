@@ -1,11 +1,10 @@
 // Importa le costanti e le funzioni utilities necessarie
-import { handlePowerButtonClick } from './handlerButtonClick/handlePowerButtonClick.js';
-import { handleStartButtonClick } from './handlerButtonClick/handleStartButtonClick.js';
-import { handleConfigButtonClick } from './handlerButtonClick/handleConfigButtonClick.js';
-import { handleHomeButtonClick } from './handlerButtonClick/handleHomeButtonClick.js';
+import { handleMainButtonClick } from './handlerButtonClick/handleMainButtonClick.js';
+import { ClickMonitor } from './handlerButtonClick/handleAdminMenuButtonClick.js';
+import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
-import { updateUI, loadComponent } from './utils.js';
+import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
 import { showSyncedPopup } from './api.js';
 
 // Stato globale dell'applicazione
@@ -72,23 +71,31 @@ async function initApp() {
     initWebSocket();
     
     // Carica i componenti UI
-    await loadComponent('button-grid', 'components/button-grid.html');
-    await loadComponent('status-panel', 'components/status-panel.html');
+    const resLoad = await loadComponent('button-grid', 'components/button-grid.html');
+    const resComp = await loadComponent('status-panel', 'components/status-panel.html');
 
     // Configura i pulsanti
-    const powerBtn = document.getElementById('powerBtn');
-    const startBtn = document.getElementById('startBtn');
-    const configBtn = document.getElementById('configBtn');
-    const homeBtn = document.getElementById('homeBtn');
+    const mainBtn = document.getElementById('mainBtn');
+    const secondBtn = document.getElementById('secondBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const logoBtn = document.getElementById('alterEgoLogo');
+
+    // Configura monitor per clicks
+    const monitor = new ClickMonitor(ws, logoBtn);
 
     // Aggiungi event listener
-    powerBtn.addEventListener('click', () => handlePowerButtonClick(ws, state));  
-    startBtn.addEventListener('click', () => handleStartButtonClick(ws, state));  
-    configBtn.addEventListener('click', () => handleConfigButtonClick(ws, state));
-    homeBtn.addEventListener('click',  () => handleHomeButtonClick(ws, state));
+    mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state));   
+    secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state));
+    settingsBtn.addEventListener('click',  () => settingsAction());
+    closeBtn.addEventListener('click',  () => monitor.executeCloseFunction());
 
-    // Aggiorna UI iniziale
-    updateUI(state);
+    // Gestione del click fuori dal popup per chiuderlo
+    document.getElementById('popupOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminMenu();
+        }
+    });
 
     // Rimuovi classe loading
     document.querySelectorAll('.loading').forEach(el => {
