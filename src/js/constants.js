@@ -1,7 +1,7 @@
 // ROS related commands
 export const ROS_COMMANDS = {
     SETUP: 'source /opt/ros/noetic/setup.bash && source ~/catkin_ws/devel/setup.bash',
-    SETUP_LOCAL: 'source ~/.bashrc && source /opt/ros/noetic/setup.bash && source ~/AlterEGO_Adriano/catkin_ws/devel/setup.bash',
+    SETUP_LOCAL: 'source ~/.bashrc && export ROBOT_NAME=robot_adriano && export ROS_MASTER_URI=http://192.168.0.110:11311 && export ROS_IP=192.168.0.111 && source /opt/ros/noetic/setup.bash && source ~/AlterEGO_Adriano/catkin_ws/devel/setup.bash',
     CLEANUP: 'source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster',
     CLEAR_LOG: 'truncate -s 0 ~/catkin_ws/src/AlterEGO_v2/alterego_robot/config/SystemCheck.txt'
 };
