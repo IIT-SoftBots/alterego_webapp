@@ -1,5 +1,7 @@
+import { batteryMonitor } from './batterymonitor.js';
 import { NUC_BASE_IP, ROS_CATKIN_WS, ROS_SRC_FOLDER } from './constants.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
+import { updateBatteryGraphics } from './utils.js';
 
 /**
  * Executes a generic command through the server
@@ -128,17 +130,19 @@ export async function pingRemoteComputer() {
 export async function initializeIMU(ws, robotName) {
     try {
         // First popup - Calibration warning
-        const initIMU = await showSyncedPopup(ws, {
+        /*const initIMU = await showSyncedPopup(ws, {
             title: 'Calibration in Progress',
             text: "Do not touch the robot during calibration.",
             icon: 'warning',
             showCancelButton: false,
             allowOutsideClick: false,
             allowEscapeKey: false,
-            confirmButtonText: 'OK, start calibration'
+            showConfirmButton: false,
+            //confirmButtonText: 'OK, start calibration'
         });
         
         if (!initIMU) return false;
+        */
 
         // Send IMU command
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
@@ -149,8 +153,8 @@ export async function initializeIMU(ws, robotName) {
         
         // Second popup - Calibration progress
         await showSyncedPopup(ws, {
-            title: 'Calibrating...',
-            html: 'Wait for 5 seconds',
+            title: 'Calibrating IMU...',
+            html: 'Do not touch the robot during calibration. Wait for 5 seconds',
             timer: 5000,
             timerProgressBar: true,
             allowOutsideClick: false,
@@ -200,6 +204,125 @@ export async function initializeIMU(ws, robotName) {
         return false;
     }
 }
+
+/**
+ * Checks battery status from topic
+ * @param {string} robotName - Name of the robot
+ */
+export async function startBatteryCheck(robotName) {
+    const MAX_NULL_READINGS = 10;
+    const POLLING_INTERVAL = 1000;
+    var topicDataOutput;
+            
+    // Start checking stability
+    const bInterval = setInterval(async () => {
+        try {
+
+            topicDataOutput = await getTopicValue(`/${robotName}/battery/status`);            
+            
+            if (topicDataOutput == null) {
+                batteryMonitor.updateErrorCounter();
+                console.warn(`Null reading battery check #${batteryMonitor.getErrorCounter()}`);
+                
+                if (batteryMonitor.getErrorCounter() >= MAX_NULL_READINGS) {
+                    throw Error('Too many failed topic readings');
+                }
+                return;
+            }
+            else {
+                // Extract topic valueS
+                const matchPA = topicDataOutput.match(/power_alert:\s*(True|False)/i);
+                const matchIC = topicDataOutput.match(/is_charging:\s*(True|False)/i);
+                const matchNC = topicDataOutput.match(/need_for_charge:\s*(True|False)/i);
+                const matchBL = topicDataOutput.match(/battery_level:\s*([-]?\d*\.?\d*)/);
+                if (!matchPA || !matchIC || !matchNC || !matchBL) {
+                    console.warn('Could not parse battery_level value from:', topicDataOutput);
+                    return null;
+                }                            
+                
+                const powerAlert = matchPA ? (matchPA[1].toLowerCase() === 'true') : false;
+                const isCharging = matchIC ? (matchIC[1].toLowerCase() === 'true') : false;
+                const needCharge = matchNC ? (matchNC[1].toLowerCase() === 'true') : false;
+                const batteryLevel = parseFloat(matchBL[1]);
+                    
+                console.log('Battery Status:', batteryLevel, 'PA:', powerAlert, 'IC:', isCharging, 'NC:', needCharge);
+
+                // Update Monitor state
+                batteryMonitor.resetErrorCounter();                              
+                batteryMonitor.updateState(powerAlert, isCharging, needCharge, batteryLevel);
+
+                // State changes
+                updateBatteryGraphics(isCharging, batteryLevel);
+
+                // Once a first message has arrived set monitor timer
+                if (!batteryMonitor.timerIsSet()){
+                    batteryMonitor.updateInterval(bInterval);
+                }
+                
+            }
+            
+        } catch (error) {
+            if (topicDataOutput != null){
+                console.error('Error in topic reading:', error);
+            }
+            if (batteryMonitor.getErrorCounter() >= MAX_NULL_READINGS) {
+                console.error('Too many failed topic readings');
+                batteryMonitor.resetErrorCounter();
+                batteryMonitor.clearIntervalTimer();
+                clearInterval(bInterval);                    
+                return;
+            }
+        }
+    }, POLLING_INTERVAL);
+
+   
+}
+
+export async function stopBatteryCheck(){
+
+    // Kill battery monitor timers
+    batteryMonitor.clearIntervalTimer();    // Stop Battery Check
+}
+
+/**
+ * Wait for Power Alert trigger to switch power off
+ * Shows synchronized popups while waiting
+ * @param {WebSocket} ws - WebSocket connection for sync
+ * @returns {Promise<boolean>} True if initialization successful
+ */
+export async function waitForPowerAlertTrigger(ws, waitOn) {
+    try {
+        
+        while (batteryMonitor.timerIsSet() && batteryMonitor.getReadyForPowerOff()==waitOn) {
+
+            console.log("POWER ALERT: " + batteryMonitor.getPowerAlert());
+
+            await showSyncedPopup(ws, {
+                title: 'Power Alert',
+                text: 'Power is still ' + ((waitOn)?'off':'on') + '. Please push the Emergency Button to switch ' + ((waitOn)?'on':'off') + ' power',
+                icon: 'warning',
+                showCancelButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'OK, Check Now'
+            });
+            
+            // Add a small delay to ensure the first popup is fully closed
+            await new Promise(resolve => setTimeout(resolve, 500));            
+        }        
+        return true;
+        
+    } catch (error) {
+        console.error('Power Alert Trigger error:', error);
+        await showSyncedPopup(ws, {
+            title: 'Error',
+            text: 'Power Alert Trigger failed',
+            icon: 'error'
+        });
+        return false;
+    }
+}
+
 /**
  * Handles backward movement of the robot
  * Shows synchronized warning popup and monitors movement
@@ -207,35 +330,68 @@ export async function initializeIMU(ws, robotName) {
  * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if movement completed
  */
-export async function handleBackwardMovement(ws, robotName) {
+export async function handleDockingMovement(ws, robotName, direction) {
     try {
-        console.log("Starting backward movement...");
+        console.log("Starting " + direction + " movement...");
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Popup - Info to clear space
+        await showSyncedPopup(ws, {
+            title: 'Moving ' + direction,
+            text: 'Pay attention!! Clear the space ' + ((direction=="forward")?'in front of':'behind') + ' the robot...',
+            icon: 'info',
+            timer: 5000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
         
         // First popup - Safety warning
-/*        await showSyncedPopup(ws, {
-            title: 'Safety Check',
-            text: "Clear the space behind the robot.",
-            icon: 'warning',
-            showCancelButton: false,
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonText: 'OK, start calibration'
-        });
-*/        
+        // await showSyncedPopup(ws, {
+        //     title: 'Safety Check',
+        //     text: Clear the space ' + ((direction=="forward")?'in front of':'behind') + ' the robot...',
+        //     icon: 'warning',
+        //     showCancelButton: false,
+        //     allowOutsideClick: false,
+        //     allowEscapeKey: false,
+        //     showConfirmButton: false,
+        //     //confirmButtonText: 'OK, start calibration'
+        // });
+        
 
-        // Send backward movement command
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+        // Send docking movement command
+        if (direction == "forward"){
+            // Forward
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FORWARD}`);
+        }
+        else {
+            // Backward
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
+            await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
+/*
+            // Start Battery Monitor (to do after wheels)
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
+            await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
+            
+            // Start checking battery
+            startBatteryCheck(robotName);
+
+            // Wait for Power Alert Trigger
+            const powerIsOn = await waitForPowerAlertTrigger(ws, true);
+            if (!powerIsOn) {
+                throw Error("Power Alert Issue");
+            }
+            */
+        }
         
         // Add a small delay before showing the progress popup
-        await new Promise(resolve => setTimeout(resolve, 500));
+        //await new Promise(resolve => setTimeout(resolve, 500));
 
         return new Promise((resolve) => {
             let checkInterval;
             
             // Show progress popup with node status checking
             Swal.fire({
-                title: 'Moving Backward...',
+                title: 'Moving ' + direction + '...',
                 text: 'Please wait',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
@@ -244,14 +400,14 @@ export async function handleBackwardMovement(ws, robotName) {
                     Swal.showLoading();
                     // Start checking node status
                     checkInterval = setInterval(async () => {
-                        const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/backward`);
+                        const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/docking`);
                         if (!isNodeActive) {
                             clearInterval(checkInterval);
                             Swal.close();
                             // Show completion popup
                             await showSyncedPopup(ws, {
                                 title: 'Complete',
-                                text: 'Backward movement completed',
+                                text: direction + ' movement completed',
                                 icon: 'success',
                                 timer: 1500,
                                 showConfirmButton: false
@@ -270,10 +426,10 @@ export async function handleBackwardMovement(ws, robotName) {
         });
 
     } catch (error) {
-        console.error('Error in backward movement:', error);
+        console.error('Error in ' + direction + ' movement:', error);
         await showSyncedPopup(ws, {
             title: 'Error',
-            text: 'Failed to move backward',
+            text: 'Failed to move ' + direction,
             icon: 'error'
         });
         return false;
@@ -291,14 +447,14 @@ export async function initializeSystem(ws, robotName) {
         // Wait for system stabilization
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Check stability
-        const isStable = await checkStability(ws, robotName);
-        if (!isStable) return false;
+        // Check stability (Uncomment if an external help is needed to raise)
+//        const isStable = await checkStability(ws, robotName);
+//        if (!isStable) return false;
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
         await new Promise(r => setTimeout(r, 2000));
-        
+/*        
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
         
@@ -318,7 +474,7 @@ export async function initializeSystem(ws, robotName) {
         
         const movementInitialized = await checkMovementController(ws);
         if (!movementInitialized) return false;       
-
+*/
 
         return true;
 
@@ -335,7 +491,7 @@ export async function initializeSystem(ws, robotName) {
 /**
  * Retrieves value from a ROS topic with retry mechanism
  * @param {string} topic - ROS topic path
- * @returns {Promise<number|null>} Topic value or null if unavailable
+ * @returns {Promise<output|null>} Topic values or null if unavailable
  */
 export async function getTopicValue(topic) {
     try {
@@ -357,18 +513,13 @@ export async function getTopicValue(topic) {
                 
                 const data = await response.json();
                 if (!data || !data.output) {
-                    console.warn('No data received from topic:', topic);
-                    return null;
+                    //console.warn('No data received from topic:', topic);
+                    throw new Error(`No data received from topic: ${topic}`);
+                    //return null;
                 }
                 
-                // Extract y value
-                const match = data.output.match(/y:\s*([-]?\d*\.?\d*)/);
-                if (!match) {
-                    console.warn('Could not parse y value from:', data.output);
-                    return null;
-                }
+                return data.output;
                 
-                return parseFloat(match[1]);
             } catch (error) {
                 retries--;
                 if (retries === 0) throw error;
@@ -428,7 +579,16 @@ export async function checkStability(ws, robotName) {
                     // Start checking stability
                     checkInterval = setInterval(async () => {
                         try {
-                            const value = await getTopicValue(`/${robotName}/imu/RPY`);
+                            const topicDataOutput = await getTopicValue(`/${robotName}/imu/RPY`);
+                            
+                            // Extract y value
+                            const match = topicDataOutput.match(/y:\s*([-]?\d*\.?\d*)/);
+                            if (!match) {
+                                console.warn('Could not parse y value from:', topicDataOutput);
+                                return null;
+                            }                            
+                            const value = parseFloat(match[1]);
+
                             console.log('IMU value:', value, 'Time:', new Date().toISOString());
                             
                             if (value === null) {

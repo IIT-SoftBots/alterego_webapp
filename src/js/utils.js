@@ -1,3 +1,4 @@
+import { batteryMonitor } from './batterymonitor.js';
 import { STATE, UI_STATES } from './constants.js';
 
 // Salva lo stato dei pulsanti nel localStorage
@@ -19,7 +20,7 @@ export function updateUI(state) {
     const systemStatus = document.getElementById('systemStatus');
 
     // Aggiorna stato power
-    if (state.isPowered) {
+    if (state.isPowered && !batteryMonitor.getPowerAlert()) {
         powerStatus.style.backgroundColor = UI_STATES.POWER_ON.color;
         document.querySelector('#powerStatus + span').textContent = UI_STATES.POWER_ON.text;
     } else {
@@ -43,6 +44,7 @@ export function updateUI(state) {
             secondBtn.disabled = false;        
             updateMainBtn('start_robot');
             updateSecondBtn('power_off');
+            break;
         case STATE.ACTIVATE_ROBOT:    
             mainBtn.disabled = true;  
             secondBtn.disabled = true;      

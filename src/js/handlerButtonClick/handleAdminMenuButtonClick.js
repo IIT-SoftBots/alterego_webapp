@@ -1,3 +1,4 @@
+import { batteryMonitor } from '../batterymonitor.js';
 import { openPopup } from '../utils.js';
 
 export class ClickMonitor {
@@ -29,7 +30,6 @@ export class ClickMonitor {
         
         // Controlla se abbiamo raggiunto il numero massimo di click
         if (this.clickTimestamps.length >= this.maxClicks) {
-            //this.executeCloseFunction();
             openPopup();
         }
     }
@@ -45,5 +45,8 @@ export class ClickMonitor {
         
         // Rimuovi l'event listener
         this.imageElement.removeEventListener('click', this.handleClick.bind(this));
+
+        // Spegni battery monitor
+        batteryMonitor.clearIntervalTimer();
     }
 }

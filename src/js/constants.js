@@ -23,19 +23,55 @@ export const STATE = {
 
 // Launch commands for different ROS nodes
 export const LAUNCH_COMMANDS = {
+
+    // Core Nodes
     ROSCORE: 'roscore',
     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
-    IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=2',
-    BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2',
-    PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=2',
-    BACKWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2 movementDirection:="backward" maxLinDistance:=0.3',
-    FORWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2 movementDirection:="forward"',
-    BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2',
-    BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2',
-    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
-    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch  AlterEgoVersion:=2',
+    IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=4',
+    BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4',
+    QB_INTERFACE: 'rosrun qb_interface qb_interface',
+    BACKWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="backward" maxLinDistance:=0.3',
+    FORWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="forward" maxLinDistance:=0.3',
+    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=4',
+    
+    // Body Movement Nodes
+    PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=4',    
+    BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=4',
+    BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=4',
+    
+    // Additional Nodes
+    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=4',
     FACE_RECOGNITION: 'roslaunch alterego_face_recognition face_recognition.launch',
-    FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch'
+    FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
+
+    // Stop Core Nodes
+    STOP_BATTERY:           '/battery/battery_status',
+    STOP_QB_INTERFACE:      '/wheels/qb_interface_node',
+
+    // Stop Body Movement Nodes
+    STOP_PILOT: {
+        R_CTRL: '/right/arms_compliant_control_node',
+        L_CTRL: '/left/arms_compliant_control_node',
+        INBOUND:'/inbound_data',
+        SOCKET: '/socket'
+    },
+    STOP_BODY_ACTIVATION: {
+        R_ARM:  '/right/qb_manager',
+        L_ARM:  '/left/qb_manager',        
+    },
+    STOP_BODY_MOVEMENT: {
+        R_ARM:  '/right/arm_inv_dyn',
+        L_ARM:  '/left/arm_inv_dyn',
+        HEAD:   '/head/head_inv_kin',
+        R_MAIN: '/right/arm_inv_kin_main',
+        L_MAIN: '/left/arm_inv_kin_main',
+        PITCH:  '/pitch_correction'
+    },
+
+    // Stop Additional Nodes
+    STOP_FACE_EXPRESSION:   '/face_expressions',
+    STOP_FACE_RECOGNITION:  '/face_recognition',
+    STOP_FACE_TRACKING:     '/face_tracker'
 };
 
 // UI States

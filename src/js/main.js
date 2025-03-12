@@ -6,12 +6,14 @@ import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButton
 // Importa le costanti e le funzioni utilities necessarie
 import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
 import { showSyncedPopup } from './api.js';
+import { batteryMonitor } from './batterymonitor.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
 let state = {
     isPowered: false,    // Stato di accensione del sistema
     isRunning: false,    // Stato di esecuzione del sistema
+    pipelineState: 0,    // Workflow State
     uiState: {
         activePopup: null,     // Popup attualmente visualizzato
         notifications: []      // Coda delle notifiche (max 10)
@@ -81,7 +83,7 @@ async function initApp() {
     const closeBtn = document.getElementById('closeBtn');
     const logoBtn = document.getElementById('alterEgoLogo');
 
-    // Configura monitor per clicks
+    // Configura monitor per clicks e batteria
     const monitor = new ClickMonitor(ws, logoBtn);
 
     // Aggiungi event listener
@@ -101,6 +103,12 @@ async function initApp() {
     document.querySelectorAll('.loading').forEach(el => {
         el.classList.add('loaded');
     });
+
+    // Aggiorna l'interfaccia utente
+    updateUI(state);
+        
+    // Start Battery Monitor
+    batteryMonitor.start(ws, state.pipelineState);
 }
 
 // Avvia l'applicazione quando il DOM è pronto

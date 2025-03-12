@@ -1,7 +1,7 @@
 import { showSyncedPopup } from '../api.js';
 import { STATE } from '../constants.js';
 import { updateUI } from '../utils.js';
-import { dockingProcedures, goHomeProcedures, robotPowerOffClick } from '../workflow.js';
+import { robotHomeClick, robotPowerOffClick } from '../workflow.js';
 /**
  * Gestisce il click sul pulsante Home
  * Avvia il movimento verso la posizione home
@@ -16,15 +16,19 @@ export async function handleSecondButtonClick(ws, state) {
         if (state.pipelineState == STATE.INIT ||
             state.pipelineState == STATE.DOCKED ||
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
-            // Clicked to Power Off Robot
-            showSyncedPopup(ws, {
+
+            // First popup - Global warning
+            const warnAnsw = await showSyncedPopup(ws, {
                 title: 'Power Off',
-                text: 'Deactivating the Robot...',
-                icon: 'info',
-                timer: 2000,
-                timerProgressBar: true,
-                showConfirmButton: false
+                text: "The system will deactivate the robot and power off now. Are you sure?",
+                icon: 'warning',
+                showCancelButton: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'OK, Power Off'
             });
+            
+            if (!warnAnsw) return;
 
             // Switch Everything Off
             robotPowerOffClick(ws, state);
@@ -37,19 +41,20 @@ export async function handleSecondButtonClick(ws, state) {
         }
         else {
             // Clicked to Go Home
-            showSyncedPopup(ws, {
+            const warnAnsw = await showSyncedPopup(ws, {
                 title: 'Home Position',
-                text: 'Moving to home position...',
-                icon: 'info',
-                timer: 2000,
-                timerProgressBar: true,
-                showConfirmButton: false
+                text: "The system will navigate towards its home now. Are you sure?",
+                icon: 'warning',
+                showCancelButton: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'OK, go Home'
             });
+            
+            if (!warnAnsw) return;
 
-            // Send Home
-            goHomeProcedures(ws);
-
-            dockingProcedures(ws, state);
+            // Homing
+            robotHomeClick(ws, state);
             state.isRunning = false;
 
             ws.send(JSON.stringify({

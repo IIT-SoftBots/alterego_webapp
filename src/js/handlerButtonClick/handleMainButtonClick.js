@@ -1,7 +1,7 @@
-import { pingRemoteComputer} from '../api.js';
+import { pingRemoteComputer, showSyncedPopup} from '../api.js';
 import { STATE } from '../constants.js';
 import { updateUI } from '../utils.js';
-import { robotPowerOnClick, pauseProcedures, restartFromPauseProcedures } from '../workflow.js';
+import { robotPowerOnClick, pauseProcedures, restartFromPauseProcedures, endChargeProcedures } from '../workflow.js';
 
 /**
  * Gestisce il click sul pulsante di accensione
@@ -14,7 +14,7 @@ export async function handleMainButtonClick(ws, state) {
 
     try {
         // Verifica connessione al computer base
-    /*    const isRemoteComputerOnline = await pingRemoteComputer();
+        const isRemoteComputerOnline = await pingRemoteComputer();
         if (!isRemoteComputerOnline) {
             // Mostra errore se non connesso
             const popupData = {
@@ -29,7 +29,7 @@ export async function handleMainButtonClick(ws, state) {
             }));
             return;
         }
-        */
+                                 
 
         if (state.pipelineState == STATE.WORK_MODE ||
             state.pipelineState == STATE.PAUSED){
@@ -53,7 +53,28 @@ export async function handleMainButtonClick(ws, state) {
                 data: { isRunning: state.isRunning }
             }));
         }
-        else {
+
+        if (state.pipelineState == STATE.INIT ||
+            state.pipelineState == STATE.DOCKED ||
+            state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
+
+            // First popup - Global warning
+            const warnAnsw = await showSyncedPopup(ws, {
+                title: 'Start Robot',
+                text: "The system will move back and activate the robot now. Are you sure?",
+                icon: 'warning',
+                showCancelButton: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'OK, Activate Robot'
+            });
+            
+            if (!warnAnsw) return false;
+
+            if (state.pipelineState == STATE.DOCKED) {  // In this case, the robot is still active
+                endChargeProcedures(ws, state);
+            }
+
             // Clicked to Start Robot
             robotPowerOnClick(ws, state);
             state.isPowered = true;
