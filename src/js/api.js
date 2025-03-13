@@ -87,6 +87,7 @@ export async function checkNodeStatus(nodeName) {
         }
         
         const data = await response.json();
+        
         return data.output.includes(nodeName);
     } catch (error) {
         console.error('Error checking node status:', error);
@@ -210,16 +211,16 @@ export async function initializeIMU(ws, robotName) {
  * @param {string} robotName - Name of the robot
  */
 export async function startBatteryCheck(robotName) {
-    const MAX_NULL_READINGS = 10;
-    const POLLING_INTERVAL = 1000;
+    const MAX_NULL_READINGS = 3;
+    const POLLING_INTERVAL = 3000;
     var topicDataOutput;
             
     // Start checking stability
     const bInterval = setInterval(async () => {
         try {
 
-            topicDataOutput = await getTopicValue(`/${robotName}/battery/status`);            
-            
+            topicDataOutput = await getTopicValue(`/${robotName}/battery/status`);      // Last at max. 3 retries x 500 ms = 1500 ms      
+
             if (topicDataOutput == null) {
                 batteryMonitor.updateErrorCounter();
                 console.warn(`Null reading battery check #${batteryMonitor.getErrorCounter()}`);
@@ -245,7 +246,7 @@ export async function startBatteryCheck(robotName) {
                 const needCharge = matchNC ? (matchNC[1].toLowerCase() === 'true') : false;
                 const batteryLevel = parseFloat(matchBL[1]);
                     
-                console.log('Battery Status:', batteryLevel, 'PA:', powerAlert, 'IC:', isCharging, 'NC:', needCharge);
+                //console.log('Battery Status:', batteryLevel, 'PA:', powerAlert, 'IC:', isCharging, 'NC:', needCharge);
 
                 // Update Monitor state
                 batteryMonitor.resetErrorCounter();                              
@@ -275,7 +276,6 @@ export async function startBatteryCheck(robotName) {
         }
     }, POLLING_INTERVAL);
 
-   
 }
 
 export async function stopBatteryCheck(){
@@ -290,27 +290,34 @@ export async function stopBatteryCheck(){
  * @param {WebSocket} ws - WebSocket connection for sync
  * @returns {Promise<boolean>} True if initialization successful
  */
-export async function waitForPowerAlertTrigger(ws, waitOn) {
+export async function waitForPowerAlertTrigger(ws, needPower) {
     try {
-        
-        while (batteryMonitor.timerIsSet() && batteryMonitor.getReadyForPowerOff()==waitOn) {
-
-            console.log("POWER ALERT: " + batteryMonitor.getPowerAlert());
-
-            await showSyncedPopup(ws, {
-                title: 'Power Alert',
-                text: 'Power is still ' + ((waitOn)?'off':'on') + '. Please push the Emergency Button to switch ' + ((waitOn)?'on':'off') + ' power',
-                icon: 'warning',
-                showCancelButton: false,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonText: 'OK, Check Now'
-            });
             
-            // Add a small delay to ensure the first popup is fully closed
-            await new Promise(resolve => setTimeout(resolve, 500));            
-        }        
-        return true;
+        while (!batteryMonitor.timerIsSet()){
+            await new Promise(resolve => setTimeout(resolve, 500));   
+        }
+        
+        if (batteryMonitor.timerIsSet()){
+            // Battery topic is monitored            
+            while (needPower == batteryMonitor.getPowerAlert()){ 
+
+                await showSyncedPopup(ws, {
+                    title: 'Power Alert',
+                    text: 'Power is still ' + ((needPower)?'off':'on') + '. Please push the Emergency Button to switch ' + ((needPower)?'on':'off') + ' power',
+                    icon: 'warning',
+                    showCancelButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'OK, Check Now'
+                });
+                
+                // Add a small delay to ensure the first popup is fully closed
+                await new Promise(resolve => setTimeout(resolve, 500));            
+            }     
+
+            return true;
+        }   
+        return false;
         
     } catch (error) {
         console.error('Power Alert Trigger error:', error);
@@ -366,28 +373,13 @@ export async function handleDockingMovement(ws, robotName, direction) {
         else {
             // Backward
             sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
-            await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
-/*
-            // Start Battery Monitor (to do after wheels)
-            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
-            await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
-            
-            // Start checking battery
-            startBatteryCheck(robotName);
-
-            // Wait for Power Alert Trigger
-            const powerIsOn = await waitForPowerAlertTrigger(ws, true);
-            if (!powerIsOn) {
-                throw Error("Power Alert Issue");
-            }
-            */
         }
         
         // Add a small delay before showing the progress popup
-        //await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         return new Promise((resolve) => {
-            let checkInterval;
+            var checkInterval;
             
             // Show progress popup with node status checking
             Swal.fire({
@@ -414,7 +406,7 @@ export async function handleDockingMovement(ws, robotName, direction) {
                             });
                             resolve(true);
                         }
-                    }, 1000);
+                    }, 2000);
                 },
                 willClose: () => {
                     // Cleanup interval if popup is closed
@@ -524,7 +516,7 @@ export async function getTopicValue(topic) {
                 retries--;
                 if (retries === 0) throw error;
                 console.warn(`Retry attempt left: ${retries}`);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
             }
         }
     } catch (error) {

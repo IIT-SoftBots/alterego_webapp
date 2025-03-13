@@ -18,13 +18,15 @@ export class BatteryMonitor {
 
         this.oldPowerAlertTrigger = -1;
         this.isSetOldPowerAlertTrigger = false;
+        this.oldNeedChargeTrigger = -1;
+        this.isSetOldNeedChargeTrigger = false;
+        this.firstNeedCharge = false;
         this.errorCounter = 0;
 
         this.batteryInterval = [];
         this.isTimerSet = false;
         this.websocket = 0;
         this.fsmState = 0;  
-        this.readyForPowerOff = false;
     }
 
     start(ws, initState){
@@ -55,6 +57,7 @@ export class BatteryMonitor {
             clearInterval(this.batteryInterval);
             this.isTimerSet = false;
             this.clearOldPowerAlertTrigger();
+            this.clearOldNeedChargeTrigger();
         }
     }
 
@@ -67,6 +70,15 @@ export class BatteryMonitor {
         return false;
     }
     
+    checkNeedChargeTrigger(){
+        // Trigger should be detected and handled on time
+        if (this.isSetOldNeedChargeTrigger && this.oldNeedChargeTrigger != this.needCharge){
+            this.oldNeedChargeTrigger = this.needCharge;
+            return true;
+        }
+        return false;
+    }
+
     getPowerAlert() {
         return this.powerAlert;         
     } 
@@ -80,12 +92,19 @@ export class BatteryMonitor {
         this.isSetOldPowerAlertTrigger = false;
     }
 
+    clearOldNeedChargeTrigger(){
+        this.oldNeedChargeTrigger = [];
+        this.isSetOldNeedChargeTrigger = false;
+    }
+
     updateState(pA, iC, nC, bL){
 
         if (!this.isTimerSet){
             // It's first message, update oldPowerAlert
             this.oldPowerAlertTrigger = pA;
             this.isSetOldPowerAlertTrigger = true;
+            this.oldNeedChargeTrigger = nC;
+            this.isSetOldNeedChargeTrigger = true;
         }
 
         // Update with new values
@@ -107,12 +126,12 @@ export class BatteryMonitor {
         this.errorCounter = 0;
     }
 
-    getReadyForPowerOff(){
-        return this.readyForPowerOff;
+    getFirstNeedCharge(){
+        return this.firstNeedCharge;
     }
 
-    setReadyForPowerOff(val){
-        this.readyForPowerOff = val;
+    setFirstNeedCharge(val){
+        this.firstNeedCharge = val;
     }
 }
 

@@ -7,6 +7,8 @@ import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButton
 import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
 import { showSyncedPopup } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
+import { STATE } from './constants.js';
+import { restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
@@ -29,7 +31,7 @@ let ws;
  */
 function initWebSocket() {
     ws = new WebSocket(`ws://localhost:3000`);
-    
+   
     // Handler per i messaggi in arrivo
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -69,6 +71,7 @@ function initWebSocket() {
  * Carica i componenti e configura gli event listener
  */
 async function initApp() {
+    
     // Inizializza WebSocket
     initWebSocket();
     
@@ -82,7 +85,7 @@ async function initApp() {
     const settingsBtn = document.getElementById('settingsBtn');
     const closeBtn = document.getElementById('closeBtn');
     const logoBtn = document.getElementById('alterEgoLogo');
-
+    
     // Configura monitor per clicks e batteria
     const monitor = new ClickMonitor(ws, logoBtn);
 
@@ -104,9 +107,21 @@ async function initApp() {
         el.classList.add('loaded');
     });
 
-    // Aggiorna l'interfaccia utente
+    console.log(state.pipelineState);
+    if (state.pipelineState == STATE.RESTART_AUTO){
+        restartAuto(ws, state);
+
+        state.pipelineState = STATE.INIT;
+            
+        ws.send(JSON.stringify({
+            type: 'stateUpdate',
+            data: { pipelineState: state.pipelineState }
+        }));    
+    }
+
+    // Aggiorna l'interfaccia utente 
     updateUI(state);
-        
+
     // Start Battery Monitor
     batteryMonitor.start(ws, state.pipelineState);
 }

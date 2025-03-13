@@ -1,17 +1,9 @@
 {
   "isPowered": false,
   "isRunning": false,
-  "pipelineState": 5,
+  "pipelineState": 6,
   "type": "stateRequest",
   "uiState": {
-    "activePopup": {
-      "title": "Power Alert",
-      "text": "Power is still on. Please push the Emergency Button to switch off power",
-      "icon": "warning",
-      "showCancelButton": false,
-      "allowOutsideClick": false,
-      "allowEscapeKey": false,
-      "confirmButtonText": "OK, Check Now"
-    }
+    "activePopup": null
   }
 }

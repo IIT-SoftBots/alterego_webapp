@@ -8,7 +8,7 @@ const { exec } = require('child_process'); // Importa exec
 let pageState = {
     isPowered: false,
     isRunning: false,
-    pipelineState: {},
+    pipelineState: 0,
     uiState: {
         activePopup: null,
         notifications: []

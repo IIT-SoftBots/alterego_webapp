@@ -74,16 +74,17 @@ export async function handleMainButtonClick(ws, state) {
             if (state.pipelineState == STATE.DOCKED) {  // In this case, the robot is still active
                 endChargeProcedures(ws, state);
             }
+            else {
+                // Clicked to Start Robot
+                robotPowerOnClick(ws, state);
+                state.isPowered = true;
 
-            // Clicked to Start Robot
-            robotPowerOnClick(ws, state);
-            state.isPowered = true;
-
-            // Notify new state
-            ws.send(JSON.stringify({
-                type: 'stateUpdate',
-                data: { isPowered: state.isPowered }
-            }));
+                // Notify new state
+                ws.send(JSON.stringify({
+                    type: 'stateUpdate',
+                    data: { isPowered: state.isPowered }
+                }));
+            }            
         }
 
     } catch (error) {

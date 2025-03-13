@@ -11,6 +11,7 @@ export const ROS_COMMANDS   = {
 
 // Workflow Routines
 export const STATE = {
+    RESTART_AUTO:              -1,
     INIT:                       0,
     ACTIVATE_ROBOT:             1,
     STAND_UP:                   2,
@@ -29,7 +30,7 @@ export const LAUNCH_COMMANDS = {
     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
     IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=4',
     BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4',
-    QB_INTERFACE: 'rosrun qb_interface qb_interface',
+    BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4 standalone:=true',
     BACKWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="backward" maxLinDistance:=0.3',
     FORWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="forward" maxLinDistance:=0.3',
     WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=4',
@@ -45,8 +46,10 @@ export const LAUNCH_COMMANDS = {
     FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
 
     // Stop Core Nodes
-    STOP_BATTERY:           '/battery/battery_status',
-    STOP_QB_INTERFACE:      '/wheels/qb_interface_node',
+    STOP_BATTERY_STANDALONE: {
+        BATTERY:        '/battery/battery_status',
+        QB_INTERFACE:   '/wheels/qb_interface_node'
+    },
 
     // Stop Body Movement Nodes
     STOP_PILOT: {

@@ -1,7 +1,7 @@
-import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, checkStability, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger} from './api.js';
+import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, checkStability, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup} from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE } from './constants.js';
-import { updateUI } from './utils.js';
+import { showPopupOverlay, updateUI } from './utils.js';
 
 var robotName;
 var batteryInterval;
@@ -28,7 +28,7 @@ async function poweroffNUCs(ws) {
 }
 
 async function startPowerMonitor(ws, state){
-    const POLLING_INTERVAL = 500;
+    const POLLING_INTERVAL = 1500;
 
     batteryInterval = setInterval(async () => {
         try {
@@ -37,24 +37,30 @@ async function startPowerMonitor(ws, state){
                 // Battery topic is monitored
        
                 const fsmState = batteryMonitor.getState(); // Need something that is updated on the background
-                console.log(fsmState);
-                if (fsmState == STATE.WORK_MODE && batteryMonitor.getNeedCharge()){
-                    // Triggered when need_for_charge = true
-                    
-                    // Send Home to Charge
-                    robotHomeClick(ws, state);
-                    state.isRunning = false;
+                //console.log("FSM PIPELINE STATE: " + fsmState);
+                
+                if (batteryMonitor.checkNeedChargeTrigger()) {
+                    // Detect and handle change in power alert 
+                    if (fsmState == STATE.WORK_MODE && batteryMonitor.getNeedCharge()){
+                        // Triggered when need_for_charge = true
 
-                    ws.send(JSON.stringify({
-                        type: 'stateUpdate',
-                        data: { isRunning: false }
-                    }));
+                        // Send Home to Charge
+                        robotHomeClick(ws, state);
+                        state.isRunning = false;
 
-                    updateUI(state);
-                }
-                if (fsmState == STATE.DOCKED && !batteryMonitor.getNeedCharge()){
-                    // Triggered when need_for_charge = false
-                    endChargeProcedures(ws, state);
+                        ws.send(JSON.stringify({
+                            type: 'stateUpdate',
+                            data: { isRunning: false }
+                        }));
+
+                        updateUI(state);
+                    }
+
+                    if (fsmState == STATE.DOCKED && !batteryMonitor.getNeedCharge()){
+                        // Triggered when need_for_charge = false
+    
+                        endChargeProcedures(ws, state);
+                    }
                 }
 
                 // Always check for Emergency Button Pressed
@@ -64,8 +70,6 @@ async function startPowerMonitor(ws, state){
                         // Trigger from False to True
                         
                         console.log("Emergency Button Pressed to remove power");
-                        
-                        batteryMonitor.setReadyForPowerOff(true);
                         
                         if (fsmState != STATE.INIT &&
                             fsmState != STATE.DOCKED &&
@@ -78,8 +82,7 @@ async function startPowerMonitor(ws, state){
                     else {
                         // Trigger from True to False
                         console.log("Emergency Button Pressed to give power");
-                        batteryMonitor.setReadyForPowerOff(false);
-
+                        
                     }
                 }
             }       
@@ -96,34 +99,74 @@ function stopPowerMonitor(){
     }
 }
 
-async function stopRobot() {
-    // Kill everything
-    sendCommand(ROS_COMMANDS.CLEANUP);
-    
-    stopBatteryCheck();
-
-    stopPowerMonitor();
-}
-
-async function deactivateRobot() {
-    // Kill everything
-    sendCommand(ROS_COMMANDS.CLEANUP);
-
-    stopBatteryCheck();
-
-    stopPowerMonitor();
-}
-
 // --------------------- PROCEDURES --------------------------------- //
-async function stopRobotToPowerOff(ws) {
+async function stopRobot(ws) {
     
-    // Wait for Power Alert Trigger
-    const powerIsOff = await waitForPowerAlertTrigger(ws, false);
-    if (!powerIsOff) {
+    stopBatteryCheck(); // Need max. 9000 ms to close (3 null_readings x 3000 ms)
+
+    stopPowerMonitor(); // Need max. 1500 ms to close
+
+    // Kill everything
+    sendCommand(ROS_COMMANDS.CLEANUP);
+
+    // Popup - Wait nodes have been killed
+    await showSyncedPopup(ws, {
+        title: 'Stop Robot',
+        text: "Robot is deactivating. Please wait...",
+        icon: 'warning',
+        showCancelButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 15000,           // 15 sec. to be sure nodes have been killed
+        timerProgressBar: true,
+        showConfirmButton: false
+    });  
+}
+
+async function deactivateRobot(ws) {
+   
+    stopBatteryCheck(); // Need max. 9000 ms to close (3 null_readings x 3000 ms)
+
+    stopPowerMonitor(); // Need max. 1500 ms to close
+
+    // Kill everything
+    sendCommand(ROS_COMMANDS.CLEANUP);
+    
+    // Popup - Wait nodes have been killed
+    await showSyncedPopup(ws, {
+        title: 'Stop Robot',
+        text: "Robot is deactivating. Please wait...",
+        icon: 'warning',
+        showCancelButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 15000,           // 15 sec. to be sure nodes have been killed
+        timerProgressBar: true,
+        showConfirmButton: false
+    });  
+}
+
+async function checkForPowerOn(ws){
+    // Start QB Interface Standalone
+
+    // Start Battery Monitor 
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_STANDALONE}`);
+    await new Promise(r => setTimeout(r, 2000));    //Wait node has started publishing
+
+    // Start checking battery
+    startBatteryCheck(robotName);
+
+    // Wait for Power Alert Trigger before moving
+    const powerIsOn = await waitForPowerAlertTrigger(ws, true);
+    if (!powerIsOn) {
         return false;
     }
+
+    stopBatteryCheck();
     
-    stopRobot();
+    // Stop Battery and QB Interface as Standalone
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BATTERY_STANDALONE.BATTERY} /${robotName}${LAUNCH_COMMANDS.STOP_BATTERY_STANDALONE.QB_INTERFACE}`);
+    await new Promise(r => setTimeout(r, 2000));    //Wait nodes have been killed
 
     return true;
 }
@@ -139,13 +182,19 @@ export async function activateRobotProcedures(ws) {
     if (!imuInitialized) {
         return false;
     }
-     
+
+    // Check For Power ON
+    const checkPowerON = await checkForPowerOn(ws);
+    if (!checkPowerON) {
+        return false;
+    }
+
     // Docking Backward
-/*    const backwardComplete =  await handleDockingMovement(ws, robotName, "backward");
+    const backwardComplete =  await handleDockingMovement(ws, robotName, "backward");
     if (!backwardComplete) {
         return false;
     }
-*/
+
     return true;
 }
 
@@ -160,15 +209,9 @@ export async function standUpProcedures(ws) {
     // Start Battery Monitor (to do after wheels)
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
     await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
-    
+
     // Start checking battery
     startBatteryCheck(robotName);
-
-    // Wait for Power Alert Trigger
-    const powerIsOn = await waitForPowerAlertTrigger(ws, true);
-    if (!powerIsOn) {
-        throw Error("Power Alert Issue");
-    }
 
     // Activate all remaining additional nodes
 /*
@@ -191,26 +234,26 @@ export async function standUpProcedures(ws) {
 
 export async function stopRobotMovement(ws){
     // Kill all movement and tracking nodes
-
+/*
     // Stop Pilot
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
 
     // Stop Body Movement
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
 
     // Stop Body Activation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM}`);
     
         
     // Stop Additional Nodes
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
     
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
     await new Promise(r => setTimeout(r, 2000));
 
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /'${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
     await new Promise(r => setTimeout(r, 2000));
-
+*/
     return true;
 }
 
@@ -224,8 +267,26 @@ export async function goHomeProcedures(ws) {
 
 
 // --------------------- STATE CHANGE --------------------------------- //
+
+async function stopRobotToPowerOff(ws, state) {
+    
+    // Wait for Power Alert Trigger
+    const powerIsOff = await waitForPowerAlertTrigger(ws, false);
+    if (!powerIsOff) {
+        return false;
+    }
+    
+    if (state.pipelineState != STATE.RECOVERY_FROM_EMERGENCY){
+        stopRobot(ws);
+    }
+
+    return true;
+}
+
 export async function robotPowerOnClick(ws, state) {
     
+    showPopupOverlay(true);
+
     robotName = await getRobotName();
  
     // Initialize Timer to monitor power issues and battery level
@@ -251,13 +312,15 @@ export async function robotPowerOnClick(ws, state) {
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.WORK_MODE);
 
+    showPopupOverlay(false);
+
     return true;
 }
 
 export async function robotPowerOffClick(ws, state) {
    
     // Stop Robot to Power Off
-    const stopRobotPowerOff = await stopRobotToPowerOff(ws);
+    const stopRobotPowerOff = await stopRobotToPowerOff(ws, state);
     if (!stopRobotPowerOff) {
         return false;
     }
@@ -302,13 +365,13 @@ export async function dockingProcedures(ws, state) {
     
     // Kill all movement and face tracking group
     stopRobotMovement(ws);
-/*
+
     // Prepare to docking Forward
     const forwardComplete =  await handleDockingMovement(ws, robotName, "forward");
     if (!forwardComplete) {
         return false;
     }
-*/    
+    
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.DOCKED);
 
@@ -317,10 +380,33 @@ export async function dockingProcedures(ws, state) {
 
 // ----------- ASYNC ROUTINES WITH STATE CHANGE -------------------- //
 export async function endChargeProcedures(ws, state) {
-    // Triggered when need_for_charge = false
     
     // Stop Robot
-    stopRobot();
+    stopRobot(ws);
+    
+    // Notify next workflow state
+    updatePipelineState(ws, state, STATE.RESTART_AUTO);
+
+    // Reload the web page and force clear the cache
+    window.location.reload(true);
+
+    return true;
+}
+
+export async function restartAuto(ws, state) {
+
+    // Popup - Info to auto restart
+    await showSyncedPopup(ws, {
+        title: 'Restart Work',
+        text: "Pay attention! In a few time the system will move back and activate the robot",
+        icon: 'warning',
+        showCancelButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 10000,
+        timerProgressBar: true,
+        showConfirmButton: false
+    });
     
     robotPowerOnClick(ws, state);   //Restart
     state.isPowered = true;
@@ -341,7 +427,7 @@ export async function emergencyButtonPressed(ws, state) {
     // Triggered when power_alert = true
 
     // Deactivate Robot
-    deactivateRobot();
+    deactivateRobot(ws);
 
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.RECOVERY_FROM_EMERGENCY);
