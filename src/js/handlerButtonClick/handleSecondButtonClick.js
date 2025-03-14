@@ -1,4 +1,5 @@
 import { showSyncedPopup } from '../api.js';
+import { batteryMonitor } from '../batterymonitor.js';
 import { STATE } from '../constants.js';
 import { updateUI } from '../utils.js';
 import { robotHomeClick, robotPowerOffClick } from '../workflow.js';
@@ -54,6 +55,7 @@ export async function handleSecondButtonClick(ws, state) {
             if (!warnAnsw) return;
 
             // Homing
+            batteryMonitor.setShouldAutoRestart(false);
             robotHomeClick(ws, state);
             state.isRunning = false;
 

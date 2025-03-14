@@ -1,7 +1,7 @@
 import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, checkStability, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup} from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE } from './constants.js';
-import { showPopupOverlay, updateUI } from './utils.js';
+import { showLoading, updateUI } from './utils.js';
 
 var robotName;
 var batteryInterval;
@@ -45,7 +45,8 @@ async function startPowerMonitor(ws, state){
                         // Triggered when need_for_charge = true
 
                         // Send Home to Charge
-                        robotHomeClick(ws, state);
+                        batteryMonitor.setShouldAutoRestart(true);
+                        robotHomeClick(ws, state);                        
                         state.isRunning = false;
 
                         ws.send(JSON.stringify({
@@ -56,7 +57,7 @@ async function startPowerMonitor(ws, state){
                         updateUI(state);
                     }
 
-                    if (fsmState == STATE.DOCKED && !batteryMonitor.getNeedCharge()){
+                    if (fsmState == STATE.DOCKED && !batteryMonitor.getNeedCharge() && batteryMonitor.getShouldAutoRestart()){
                         // Triggered when need_for_charge = false
     
                         endChargeProcedures(ws, state);
@@ -121,6 +122,8 @@ async function stopRobot(ws) {
         timerProgressBar: true,
         showConfirmButton: false
     });  
+
+    sendCommand(ROS_COMMANDS.CLEAR_LOG);
 }
 
 async function deactivateRobot(ws) {
@@ -144,6 +147,8 @@ async function deactivateRobot(ws) {
         timerProgressBar: true,
         showConfirmButton: false
     });  
+
+    sendCommand(ROS_COMMANDS.CLEAR_LOG);
 }
 
 async function checkForPowerOn(ws){
@@ -190,7 +195,7 @@ export async function activateRobotProcedures(ws) {
     }
 
     // Docking Backward
-    const backwardComplete =  await handleDockingMovement(ws, robotName, "backward");
+    const backwardComplete =  await handleDockingMovement(ws, robotName, "backward", 0.5);
     if (!backwardComplete) {
         return false;
     }
@@ -214,13 +219,13 @@ export async function standUpProcedures(ws) {
     startBatteryCheck(robotName);
 
     // Activate all remaining additional nodes
-/*
+
     // Start Pilot
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
+ //   sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
 
     // Start FACE EXPRESSION
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
-
+/*
     // Start FACE TRACKING
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
     await new Promise(r => setTimeout(r, 2000));
@@ -234,20 +239,25 @@ export async function standUpProcedures(ws) {
 
 export async function stopRobotMovement(ws){
     // Kill all movement and tracking nodes
-/*
+
     // Stop Pilot
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /'${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+ //   sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+ //   await new Promise(r => setTimeout(r, 1000));
 
     // Stop Body Movement
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
+    await new Promise(r => setTimeout(r, 1000));
 
     // Stop Body Activation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /'${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.L_ARM}`);
+    await new Promise(r => setTimeout(r, 1000));
     
-        
+    
     // Stop Additional Nodes
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
-    
+    await new Promise(r => setTimeout(r, 1000));
+
+/*    
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
     await new Promise(r => setTimeout(r, 2000));
 
@@ -260,11 +270,12 @@ export async function stopRobotMovement(ws){
 export async function goHomeProcedures(ws) {
 
     // Send Home
+    // Navigation from current position to home room and alignment to charging station within fwdDistance distance (in meters)
     //TODO
+    var fwdDistance = 0.3;
 
-    return true;
+   return fwdDistance;
 }
-
 
 // --------------------- STATE CHANGE --------------------------------- //
 
@@ -284,19 +295,18 @@ async function stopRobotToPowerOff(ws, state) {
 }
 
 export async function robotPowerOnClick(ws, state) {
-    
-    showPopupOverlay(true);
 
     robotName = await getRobotName();
- 
+
+    showLoading(true);
+
     // Initialize Timer to monitor power issues and battery level
     startPowerMonitor(ws, state);
 
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.ACTIVATE_ROBOT);
     
-    // Activate core nodes and moves backward
-    // Activate Robot
+    // Activate Robot Core nodes and moves backward
     if (!(await activateRobotProcedures(ws))){
         return false;
     }
@@ -312,13 +322,13 @@ export async function robotPowerOnClick(ws, state) {
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.WORK_MODE);
 
-    showPopupOverlay(false);
+    showLoading(false);
 
     return true;
 }
 
 export async function robotPowerOffClick(ws, state) {
-   
+
     // Stop Robot to Power Off
     const stopRobotPowerOff = await stopRobotToPowerOff(ws, state);
     if (!stopRobotPowerOff) {
@@ -333,16 +343,22 @@ export async function robotPowerOffClick(ws, state) {
 
     // Notify next workflow state (useless, everything is off)
     updatePipelineState(ws, state, STATE.INIT);
-    
+
     return true;
 }
 
 export async function robotHomeClick(ws, state) {
+
+    showLoading(true);
+
     // Send Home
-    goHomeProcedures(ws);
+    const fwdDistance = await goHomeProcedures(ws);
 
     // Dock to charging station
-    dockingProcedures(ws, state);
+    dockingProcedures(ws, state, fwdDistance);
+
+    showLoading(false);
+
 }
 
 export async function restartFromPauseProcedures(ws, state) {
@@ -361,13 +377,13 @@ export async function pauseProcedures(ws, state) {
     return true;
 }
 
-export async function dockingProcedures(ws, state) {
+export async function dockingProcedures(ws, state, maxLinDistance) {
     
     // Kill all movement and face tracking group
     stopRobotMovement(ws);
 
     // Prepare to docking Forward
-    const forwardComplete =  await handleDockingMovement(ws, robotName, "forward");
+    const forwardComplete =  await handleDockingMovement(ws, robotName, "forward", maxLinDistance);
     if (!forwardComplete) {
         return false;
     }

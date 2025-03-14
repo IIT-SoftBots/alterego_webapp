@@ -21,6 +21,7 @@ export class BatteryMonitor {
         this.oldNeedChargeTrigger = -1;
         this.isSetOldNeedChargeTrigger = false;
         this.firstNeedCharge = false;
+        this.shouldAutoRestart = false;
         this.errorCounter = 0;
 
         this.batteryInterval = [];
@@ -132,6 +133,14 @@ export class BatteryMonitor {
 
     setFirstNeedCharge(val){
         this.firstNeedCharge = val;
+    }
+
+    getShouldAutoRestart(){
+        return this.shouldAutoRestart;
+    }
+
+    setShouldAutoRestart(val){
+        this.shouldAutoRestart = val;
     }
 }
 

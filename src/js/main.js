@@ -8,7 +8,7 @@ import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils
 import { showSyncedPopup } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { STATE } from './constants.js';
-import { restartAuto } from './workflow.js';
+import { goHomeProcedures, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
@@ -74,7 +74,7 @@ async function initApp() {
     
     // Inizializza WebSocket
     initWebSocket();
-    
+
     // Carica i componenti UI
     const resLoad = await loadComponent('button-grid', 'components/button-grid.html');
     const resComp = await loadComponent('status-panel', 'components/status-panel.html');
@@ -106,8 +106,7 @@ async function initApp() {
     document.querySelectorAll('.loading').forEach(el => {
         el.classList.add('loaded');
     });
-
-    console.log(state.pipelineState);
+    
     if (state.pipelineState == STATE.RESTART_AUTO){
         restartAuto(ws, state);
 

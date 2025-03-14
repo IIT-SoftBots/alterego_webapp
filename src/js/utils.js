@@ -154,12 +154,8 @@ export function updateBatteryGraphics(isCharging, batteryLevel){
     }    
 }
 
-export function showPopupOverlay(val){
-    document.getElementById('popupOverlay').style.display = (val)?'block':'none';
-}
-
 export function openPopup() {
-    showPopupOverlay(true);
+    document.getElementById('popupOverlay').style.display = 'block';
     document.getElementById('popup').style.display = 'block';
 }
 
@@ -172,6 +168,11 @@ export function settingsAction() {
 
 // Funzione per chiudere il popup
 export function closeAdminMenu() {
-    showPopupOverlay(false);
+    document.getElementById('popupOverlay').style.display = 'none';
     document.getElementById('popup').style.display = 'none';
+}
+
+export function showLoading(val) {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = (val)?'flex':'none';
 }

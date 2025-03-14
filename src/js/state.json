@@ -1,6 +1,6 @@
 {
   "isPowered": false,
-  "isRunning": false,
+  "isRunning": true,
   "pipelineState": 6,
   "type": "stateRequest",
   "uiState": {

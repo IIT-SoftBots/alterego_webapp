@@ -72,7 +72,7 @@ export async function getRobotName() {
  */
 export async function checkNodeStatus(nodeName) {
     try {
-        console.log("Checking the node in the list");
+        //console.log("Checking the node in the list");
 
         const response = await fetch('/grep-command', {
             method: 'POST',
@@ -337,7 +337,7 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
  * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if movement completed
  */
-export async function handleDockingMovement(ws, robotName, direction) {
+export async function handleDockingMovement(ws, robotName, direction, maxLinDistance) {
     try {
         console.log("Starting " + direction + " movement...");
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -366,14 +366,7 @@ export async function handleDockingMovement(ws, robotName, direction) {
         
 
         // Send docking movement command
-        if (direction == "forward"){
-            // Forward
-            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FORWARD}`);
-        }
-        else {
-            // Backward
-            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BACKWARD}`);
-        }
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.DOCKING} movementDirection:="${direction}" maxLinDistance:=${maxLinDistance}`);
         
         // Add a small delay before showing the progress popup
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -437,36 +430,46 @@ export async function handleDockingMovement(ws, robotName, direction) {
 export async function initializeSystem(ws, robotName) {
     try {
         // Wait for system stabilization
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Check stability (Uncomment if an external help is needed to raise)
 //        const isStable = await checkStability(ws, robotName);
 //        if (!isStable) return false;
 
+        // Popup - Info to clear space
+        await showSyncedPopup(ws, {
+            title: 'Activating Wheels',
+            text: 'Pay attention!! Robot is activating balancing...',
+            icon: 'warning',
+            timer: 5000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        await new Promise(r => setTimeout(r, 2000));
-/*        
+        await new Promise(r => setTimeout(r, 5000));
+        
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-        
+        await new Promise(r => setTimeout(r, 5000));
+
         console.log("Pre Checking arm motors activation...");
 
         // Check motors activation
         const motorsActivated = await checkMotorsActivation(ws, robotName);
         if (!motorsActivated) return false;
         
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 5000));
         console.log("Pre Checking arm motors movement...");
         
         // Start movement control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 5000));
         
         
         const movementInitialized = await checkMovementController(ws);
         if (!movementInitialized) return false;       
-*/
 
         return true;
 
@@ -498,7 +501,7 @@ export async function getTopicValue(topic) {
                         command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 ${topic}`
                     })
                 });
-                
+ 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -666,7 +669,7 @@ export async function checkMotorsActivation(ws, robotName) {
     return new Promise((resolve) => {
         let activationDetected = false;
         let checkCount = 0;
-        const MAX_ATTEMPTS = 60; // 30 seconds (60 * 500ms)
+        const MAX_ATTEMPTS = 10; // 20 seconds (10 * 2000ms)
         console.log("Checking arm motors activation...");
         // Show progress popup with activation checking
         showSyncedPopup(ws, {
@@ -687,10 +690,10 @@ export async function checkMotorsActivation(ws, robotName) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
-                                command: `source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
+                                command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
                             })
                         });
-                        
+                         
                         const data = await response.json();
                         if (data?.output) {
                             const values = data.output.match(/[-]?\d*\.?\d+/g);
@@ -713,7 +716,7 @@ export async function checkMotorsActivation(ws, robotName) {
                         console.error('Error checking arm movement:', error);
                         checkCount++;
                     }
-                }, 500);
+                }, 2000);
 
                 // Cleanup on popup close
                 Swal.getPopup().addEventListener('swal-closed', () => {

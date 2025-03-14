@@ -31,8 +31,7 @@ export const LAUNCH_COMMANDS = {
     IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=4',
     BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4',
     BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4 standalone:=true',
-    BACKWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="backward" maxLinDistance:=0.3',
-    FORWARD: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4 movementDirection:="forward" maxLinDistance:=0.3',
+    DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4',
     WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=4',
     
     // Body Movement Nodes
