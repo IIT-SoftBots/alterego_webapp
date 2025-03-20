@@ -24,6 +24,24 @@ export async function handlePowerButtonClick(ws, state) {
             return;
         }
 
+        //const isDesktopOnline = await pingDesktopComputer();
+        //if (!isDesktopOnline) {
+        //    // Mostra errore se non connesso
+        //    const popupData = {
+        //        title: 'ERROR',
+        //        text: 'Desktop computer not connected',
+        //        icon: 'error'
+        //    };
+        //
+        //    ws.send(JSON.stringify({
+        //        type: 'popup',
+        //        data: popupData
+        //    }));
+        //    //return;
+        //}
+
+
+
         // Toggle dello stato di accensione
         state.isPowered = !state.isPowered;
 
@@ -45,20 +63,21 @@ export async function handlePowerButtonClick(ws, state) {
                 return;
             }
 
-            // // Accendi il pilota
-            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
-
-            // Start FACE EXPRESSION
-            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
-
-            // Start FACE TRACKING
-            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
-            await new Promise(r => setTimeout(r, 2000));
-
-            // Start FACE TRACKING
-            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
-            await new Promise(r => setTimeout(r, 2000));
+            // // // Accendi il pilota
+            // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
             
+            // // Start FACE EXPRESSION
+            // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+            
+            // Start FACE TRACKING
+            // sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+            // await new Promise(r => setTimeout(r, 2000));
+
+            // // Start FACE TRACKING
+            // sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+            // await new Promise(r => setTimeout(r, 2000));
+            
+
             // // Procede in retro quanto basta per uscire dalla stazione di ricarica wireless
             const backwardComplete =  await handleBackwardMovement(ws, robotName);
             if (!backwardComplete) {
@@ -71,6 +90,16 @@ export async function handlePowerButtonClick(ws, state) {
                 return;
             }
 
+
+            // Start FACE EXPRESSION
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+            await new Promise(r => setTimeout(r, 2000));
+            
+
+            // // Accendi il pilota
+            sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
+            await new Promise(r => setTimeout(r, 2000));
+
         } else {
             // Spegni il sistema
             sendCommand(ROS_COMMANDS.CLEANUP);
@@ -80,6 +109,8 @@ export async function handlePowerButtonClick(ws, state) {
                 type: 'stateUpdate',
                 data: { isRunning: false }
             }));
+
+            sendCommand(ROS_COMMANDS.CLEAR_LOG);
         }
 
     } catch (error) {
