@@ -10,7 +10,7 @@ const { wss } = require('./js/websocket');
 
 const app = express();
 const port = 3000;
-const NUC_BASE_IP = '192.168.178.80';
+const NUC_BASE_IP = '192.168.0.110';
 
 // Middleware setup
 app.use(bodyParser.json());

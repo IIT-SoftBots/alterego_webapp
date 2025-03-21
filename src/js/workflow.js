@@ -6,6 +6,8 @@ import { showLoading, updateUI } from './utils.js';
 var robotName;
 var batteryInterval;
 
+robotName = await getRobotName();
+
 function updatePipelineState(ws, state, value){
     state.pipelineState = value;
             
@@ -221,19 +223,27 @@ export async function standUpProcedures(ws) {
     // Activate all remaining additional nodes
 
     // Start Pilot
- //   sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
 
     // Start FACE EXPRESSION
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
-/*
-    // Start FACE TRACKING
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 2000));
 
-    // Start FACE TRACKING
+    // Start FACE TRACKING and FACE RECOGNITION
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
     await new Promise(r => setTimeout(r, 2000));
-*/
+
+    // Start Audio Services
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.STT}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.TTS}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Start Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
+
+    // Start Navigation
+
     return true;
 }
 
@@ -241,8 +251,8 @@ export async function stopRobotMovement(ws){
     // Kill all movement and tracking nodes
 
     // Stop Pilot
- //   sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
- //   await new Promise(r => setTimeout(r, 1000));
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+    await new Promise(r => setTimeout(r, 1000));
 
     // Stop Body Movement
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
@@ -252,18 +262,32 @@ export async function stopRobotMovement(ws){
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.L_ARM}`);
     await new Promise(r => setTimeout(r, 1000));
     
-    
     // Stop Additional Nodes
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
     await new Promise(r => setTimeout(r, 1000));
-
-/*    
+     
+    // Stop Face Tracking and Recognition
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
     await new Promise(r => setTimeout(r, 2000));
-
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
     await new Promise(r => setTimeout(r, 2000));
-*/
+
+    // Stop Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${robotName}${LAUNCH_COMMANDS.KILL_SPEECH}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Stop Audio Services
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.KILL_SPEECH}`);
+    await new Promise(r => setTimeout(r, 2000));
+  
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_TTS}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_STT}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Stop Navigation
+
     return true;
 }
 
@@ -363,16 +387,59 @@ export async function robotHomeClick(ws, state) {
 
 export async function restartFromPauseProcedures(ws, state) {
 
+    showLoading(true);
+
+    // Start FACE TRACKING
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Start Audio Services
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.STT}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.TTS}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Start Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
+
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.WORK_MODE);
+
+    showLoading(false);
 
     return true;
 }
 
 export async function pauseProcedures(ws, state) {
 
+    showLoading(true);
+
+    // Stop Face Recognition
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Stop Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BREATH}`);
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Stop Audio Services
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.KILL_SPEECH}`);
+    await new Promise(r => setTimeout(r, 2000));
+  
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_TTS}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_STT}`);
+    await new Promise(r => setTimeout(r, 2000));
+
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.PAUSED);
+
+    showLoading(false);
 
     return true;
 }

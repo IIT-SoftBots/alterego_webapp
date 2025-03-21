@@ -1,6 +1,6 @@
 // Importa le costanti e le funzioni utilities necessarie
 import { handleMainButtonClick } from './handlerButtonClick/handleMainButtonClick.js';
-import { ClickMonitor } from './handlerButtonClick/handleAdminMenuButtonClick.js';
+import { ClickMonitor, clickMonitorClose, UnlockClickMonitor } from './handlerButtonClick/handleAdminMenuButtonClick.js';
 import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
@@ -85,15 +85,17 @@ async function initApp() {
     const settingsBtn = document.getElementById('settingsBtn');
     const closeBtn = document.getElementById('closeBtn');
     const logoBtn = document.getElementById('alterEgoLogo');
+    const unlockOverlay = document.getElementById('unlockOverlay');
     
     // Configura monitor per clicks e batteria
     const monitor = new ClickMonitor(ws, logoBtn);
+    const unlockMonitor = new UnlockClickMonitor(ws, unlockOverlay);
 
     // Aggiungi event listener
     mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state));   
     secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state));
     settingsBtn.addEventListener('click',  () => settingsAction());
-    closeBtn.addEventListener('click',  () => monitor.executeCloseFunction());
+    closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
 
     // Gestione del click fuori dal popup per chiuderlo
     document.getElementById('popupOverlay').addEventListener('click', function(e) {

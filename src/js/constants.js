@@ -1,10 +1,11 @@
 // ROS related commands
-export const NUC_BASE_IP    = '192.168.178.80';         // Check and modify same const in webapp.js
-export const ROS_CATKIN_WS  = '~/AlterEgo_Adriano_ws';  // Default: '~/catkin_ws'
+export const NUC_BASE_IP    = '192.168.0.110';         // Check and modify same const in webapp.js
+export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
+export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_COMMANDS   = {
     SETUP: 'source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
-    SETUP_LOCAL: 'source ~/.bashrc && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
+    SETUP_LOCAL: 'source ~/.bashrc && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash',
     CLEANUP: 'source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster',
     CLEAR_LOG: 'truncate -s 0 ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/alterego_robot/config/SystemCheck.txt'
 };
@@ -28,21 +29,29 @@ export const LAUNCH_COMMANDS = {
     // Core Nodes
     ROSCORE: 'roscore',
     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
-    IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=4',
-    BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4',
-    BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=4 standalone:=true',
-    DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=4',
-    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=4',
+    IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=2',
+    BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2',
+    BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2 standalone:=true',
+    DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2',
+    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
     
     // Body Movement Nodes
-    PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=4',    
-    BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=4',
-    BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=4',
+    PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=2',    
+    BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2',
+    BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2',
     
     // Additional Nodes
-    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=4',
+    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=2',
     FACE_RECOGNITION: 'roslaunch alterego_face_recognition face_recognition.launch',
     FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
+    STT: 'roslaunch alterego_conversation speech2text.launch 2>/dev/null',
+    TTS: 'roslaunch alterego_text2speech text2speech.launch',
+    KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
+
+    // Play ROSBAGS
+    BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
+
+    STOP_BREATH: '/rosbag_play',
 
     // Stop Core Nodes
     STOP_BATTERY_STANDALONE: {
@@ -71,9 +80,14 @@ export const LAUNCH_COMMANDS = {
     },
 
     // Stop Additional Nodes
+    STOP_TTS:               '/text2speech',
+    STOP_STT:               '/speech2text',
     STOP_FACE_EXPRESSION:   '/face_expressions',
     STOP_FACE_RECOGNITION:  '/face_recognition',
-    STOP_FACE_TRACKING:     '/face_tracker'
+    STOP_FACE_TRACKING:     '/face_tracker',
+    
+    
+
 };
 
 // UI States

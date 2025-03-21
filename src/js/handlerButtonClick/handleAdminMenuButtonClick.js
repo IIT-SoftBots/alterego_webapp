@@ -1,6 +1,12 @@
 import { batteryMonitor } from '../batterymonitor.js';
 import { openPopup } from '../utils.js';
 
+export function clickMonitorClose(monitor, unlockMonitor){
+    
+    monitor.executeCloseFunction();
+    unlockMonitor.executeCloseFunction();
+}
+
 export class ClickMonitor {
     constructor(websocket, imageElement, maxClicks = 3, timeWindow = 1000) {
         this.websocket = websocket;
@@ -8,7 +14,6 @@ export class ClickMonitor {
         this.maxClicks = maxClicks;
         this.timeWindow = timeWindow; // millisecondi
         this.clickTimestamps = [];
-        
         this.init();
     }
 
@@ -48,5 +53,52 @@ export class ClickMonitor {
 
         // Spegni battery monitor
         batteryMonitor.clearIntervalTimer();
+    }
+}
+
+export class UnlockClickMonitor {
+    constructor(websocket, unlockElement, maxClicks = 3, timeWindow = 1000) {
+        this.websocket = websocket;
+        this.unlockElement = unlockElement;
+        this.maxClicks = maxClicks;
+        this.timeWindow = timeWindow; // millisecondi
+        this.clickTimestamps = [];
+        this.init();
+    }
+
+    init() {
+        // Aggiungi event listener per i click
+        this.unlockElement.addEventListener('click', this.handleClick.bind(this));
+        this.unlockElement.style.display = 'block';
+    }
+
+    setLocked(val){
+        this.guiLocked = val;
+    }
+
+    handleClick(event) {
+        const currentTime = Date.now();
+        
+        // Filtra i timestamp più vecchi del timeWindow
+        this.clickTimestamps = this.clickTimestamps.filter(timestamp => 
+            currentTime - timestamp <= this.timeWindow
+        );
+        
+        // Aggiungi il nuovo timestamp
+        this.clickTimestamps.push(currentTime);
+        
+        // Controlla se abbiamo raggiunto il numero massimo di click
+        if (this.clickTimestamps.length >= this.maxClicks) {
+           this.unlockElement.style.display = 'none';
+           setTimeout(() => {
+                this.unlockElement.style.display = 'block';
+            }, 10000);
+        }
+    }
+
+    executeCloseFunction() {
+        
+        // Rimuovi l'event listener
+        this.unlockElement.removeEventListener('click', this.handleClick.bind(this));
     }
 }
