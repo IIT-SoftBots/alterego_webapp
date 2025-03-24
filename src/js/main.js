@@ -5,7 +5,7 @@ import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButton
 
 // Importa le costanti e le funzioni utilities necessarie
 import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
-import { showSyncedPopup } from './api.js';
+import { getRobotName, showSyncedPopup } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { STATE } from './constants.js';
 import { goHomeProcedures, restartAuto } from './workflow.js';
@@ -24,6 +24,9 @@ let state = {
 
 // Connessione WebSocket globale
 let ws;
+
+// Nome del robot nel file .bashrc
+let robotName;
 
 /**
  * Inizializza la connessione WebSocket
@@ -91,9 +94,12 @@ async function initApp() {
     const monitor = new ClickMonitor(ws, logoBtn);
     const unlockMonitor = new UnlockClickMonitor(ws, unlockOverlay);
 
+    // Get Robot Name
+    robotName = await getRobotName();
+
     // Aggiungi event listener
-    mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state));   
-    secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state));
+    mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state, robotName));   
+    secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state, robotName));
     settingsBtn.addEventListener('click',  () => settingsAction());
     closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
 
@@ -110,7 +116,7 @@ async function initApp() {
     });
     
     if (state.pipelineState == STATE.RESTART_AUTO){
-        restartAuto(ws, state);
+        restartAuto(ws, state, robotName);
 
         state.pipelineState = STATE.INIT;
             

@@ -7,7 +7,7 @@ import { robotHomeClick, robotPowerOffClick } from '../workflow.js';
  * Gestisce il click sul pulsante Home
  * Avvia il movimento verso la posizione home
  */
-export async function handleSecondButtonClick(ws, state) {
+export async function handleSecondButtonClick(ws, state, robotName) {
 
     const secondBtn = document.getElementById('secondBtn');
     secondBtn.disabled = true;

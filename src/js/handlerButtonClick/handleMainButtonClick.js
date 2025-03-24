@@ -7,7 +7,7 @@ import { robotPowerOnClick, pauseProcedures, restartFromPauseProcedures, endChar
  * Gestisce il click sul pulsante di accensione
  * Controlla la connessione e avvia/spegne il sistema
  */
-export async function handleMainButtonClick(ws, state) {
+export async function handleMainButtonClick(ws, state, robotName) {
 
     const mainBtn = document.getElementById('mainBtn');
     mainBtn.disabled = true;
@@ -41,12 +41,12 @@ export async function handleMainButtonClick(ws, state) {
 
             if (state.pipelineState == STATE.WORK_MODE){
                 // Clicked to Pause
-                pauseProcedures(ws, state);
+                pauseProcedures(ws, state, robotName);
                 state.isRunning = false;
             }
             else {
                 // Clicked to Play
-                restartFromPauseProcedures(ws, state);
+                restartFromPauseProcedures(ws, state, robotName);
                 state.isRunning = true;
             }                    
             
@@ -82,7 +82,7 @@ export async function handleMainButtonClick(ws, state) {
             }
             else {
                 // Clicked to Start Robot
-                robotPowerOnClick(ws, state);
+                robotPowerOnClick(ws, state, robotName);
                 state.isPowered = true;
 
                 // Notify new state

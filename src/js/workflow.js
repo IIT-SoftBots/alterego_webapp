@@ -3,10 +3,7 @@ import { batteryMonitor } from './batterymonitor.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE } from './constants.js';
 import { showLoading, updateUI } from './utils.js';
 
-var robotName;
 var batteryInterval;
-
-robotName = await getRobotName();
 
 function updatePipelineState(ws, state, value){
     state.pipelineState = value;
@@ -153,7 +150,7 @@ async function deactivateRobot(ws) {
     sendCommand(ROS_COMMANDS.CLEAR_LOG);
 }
 
-async function checkForPowerOn(ws){
+async function checkForPowerOn(ws, robotName){
     // Start QB Interface Standalone
 
     // Start Battery Monitor 
@@ -178,7 +175,7 @@ async function checkForPowerOn(ws){
     return true;
 }
 
-export async function activateRobotProcedures(ws) {
+export async function activateRobotProcedures(ws, robotName) {
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.ROSCORE}`);
     await new Promise(r => setTimeout(r, 2000));
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.USB_DETECTOR}`);
@@ -191,7 +188,7 @@ export async function activateRobotProcedures(ws) {
     }
 
     // Check For Power ON
-    const checkPowerON = await checkForPowerOn(ws);
+    const checkPowerON = await checkForPowerOn(ws, robotName);
     if (!checkPowerON) {
         return false;
     }
@@ -205,7 +202,7 @@ export async function activateRobotProcedures(ws) {
     return true;
 }
 
-export async function standUpProcedures(ws) {
+export async function standUpProcedures(ws, robotName) {
 
     // Initialize system (activates wheels and arms (activation e movement))
     const systemInitialized = await initializeSystem(ws, robotName);
@@ -243,11 +240,12 @@ export async function standUpProcedures(ws) {
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
 
     // Start Navigation
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
 
     return true;
 }
 
-export async function stopRobotMovement(ws){
+export async function stopRobotMovement(ws, robotName){
     // Kill all movement and tracking nodes
 
     // Stop Pilot
@@ -287,6 +285,8 @@ export async function stopRobotMovement(ws){
     await new Promise(r => setTimeout(r, 2000));
 
     // Stop Navigation
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
+    await new Promise(r => setTimeout(r, 2000));
 
     return true;
 }
@@ -318,9 +318,9 @@ async function stopRobotToPowerOff(ws, state) {
     return true;
 }
 
-export async function robotPowerOnClick(ws, state) {
+export async function robotPowerOnClick(ws, state, robotName) {
 
-    robotName = await getRobotName();
+    robotName = await getRobotName();   // Doubled to be sure
 
     showLoading(true);
 
@@ -331,7 +331,7 @@ export async function robotPowerOnClick(ws, state) {
     updatePipelineState(ws, state, STATE.ACTIVATE_ROBOT);
     
     // Activate Robot Core nodes and moves backward
-    if (!(await activateRobotProcedures(ws))){
+    if (!(await activateRobotProcedures(ws, robotName))){
         return false;
     }
     
@@ -339,7 +339,7 @@ export async function robotPowerOnClick(ws, state) {
     updatePipelineState(ws, state, STATE.STAND_UP);
     
     // Activate all the rest of nodes 
-    if (!(await standUpProcedures(ws))){
+    if (!(await standUpProcedures(ws, robotName))){
         return false;
     }         
     
@@ -385,7 +385,7 @@ export async function robotHomeClick(ws, state) {
 
 }
 
-export async function restartFromPauseProcedures(ws, state) {
+export async function restartFromPauseProcedures(ws, state, robotName) {
 
     showLoading(true);
 
@@ -411,7 +411,7 @@ export async function restartFromPauseProcedures(ws, state) {
     return true;
 }
 
-export async function pauseProcedures(ws, state) {
+export async function pauseProcedures(ws, state, robotName) {
 
     showLoading(true);
 
@@ -444,10 +444,10 @@ export async function pauseProcedures(ws, state) {
     return true;
 }
 
-export async function dockingProcedures(ws, state, maxLinDistance) {
+export async function dockingProcedures(ws, state, maxLinDistance, robotName) {
     
     // Kill all movement and face tracking group
-    stopRobotMovement(ws);
+    stopRobotMovement(ws, robotName);
 
     // Prepare to docking Forward
     const forwardComplete =  await handleDockingMovement(ws, robotName, "forward", maxLinDistance);
@@ -476,7 +476,7 @@ export async function endChargeProcedures(ws, state) {
     return true;
 }
 
-export async function restartAuto(ws, state) {
+export async function restartAuto(ws, state, robotName) {
 
     // Popup - Info to auto restart
     await showSyncedPopup(ws, {
@@ -491,7 +491,7 @@ export async function restartAuto(ws, state) {
         showConfirmButton: false
     });
     
-    robotPowerOnClick(ws, state);   //Restart
+    robotPowerOnClick(ws, state, robotName);   //Restart
     state.isPowered = true;
 
     // Notify new state

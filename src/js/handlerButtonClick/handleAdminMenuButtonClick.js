@@ -1,3 +1,4 @@
+import { showSyncedPopup } from '../api.js';
 import { batteryMonitor } from '../batterymonitor.js';
 import { openPopup } from '../utils.js';
 
@@ -76,7 +77,7 @@ export class UnlockClickMonitor {
         this.guiLocked = val;
     }
 
-    handleClick(event) {
+    async handleClick(event) {
         const currentTime = Date.now();
         
         // Filtra i timestamp più vecchi del timeWindow
@@ -89,10 +90,24 @@ export class UnlockClickMonitor {
         
         // Controlla se abbiamo raggiunto il numero massimo di click
         if (this.clickTimestamps.length >= this.maxClicks) {
+
+             // First popup - Global warning
+            const warnAnsw = await showSyncedPopup(this.websocket, {
+                title: 'Unlock Screen',
+                text: "Do you want to unlock the screen?",
+                icon: 'warning',
+                showCancelButton: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'Yes'
+            });
+            
+            if (!warnAnsw) return false;
+
            this.unlockElement.style.display = 'none';
            setTimeout(() => {
                 this.unlockElement.style.display = 'block';
-            }, 10000);
+            }, 10000);      // Lock again after 10 seconds
         }
     }
 

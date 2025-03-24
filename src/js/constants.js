@@ -1,5 +1,5 @@
 // ROS related commands
-export const NUC_BASE_IP    = '192.168.0.110';         // Check and modify same const in webapp.js
+export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same const in webapp.js
 export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
 export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
@@ -47,6 +47,7 @@ export const LAUNCH_COMMANDS = {
     STT: 'roslaunch alterego_conversation speech2text.launch 2>/dev/null',
     TTS: 'roslaunch alterego_text2speech text2speech.launch',
     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
+    NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
 
     // Play ROSBAGS
     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
@@ -86,7 +87,16 @@ export const LAUNCH_COMMANDS = {
     STOP_FACE_RECOGNITION:  '/face_recognition',
     STOP_FACE_TRACKING:     '/face_tracker',
     
-    
+    // Stop Naviagation Nodes
+    STOP_NAVIGATION: {
+        AMCL: '/amcl',
+        LIDAR: '/lidar',
+        MOVE_BASE: '/move_base',
+        MAP_SERVER: '/map_server',
+        MAP_SERVER_OBSTACLE: '/map_server_obstacle',
+        NAVIGATION: '/navigation',
+        VIS_ROBOT: '/visualize_robot'
+    }
 
 };
 
