@@ -51,14 +51,20 @@ Contributions are welcome! Please submit a pull request or open an issue for any
 This project is licensed under the MIT License. See the LICENSE file for more details.
 -- procedura per il setup della webapp
 
+```
 sudo apt update
 sudo apt install nginx -y
+```
 
--- apri il file
+- apri il file
+```
 sudo nano /etc/nginx/sites-available/default
+```
+
 - commenta tutto 
 - aggiungi questo
 
+```
 server {
     listen 80;
     server_name localhost;
@@ -70,14 +76,21 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
--- riavvia
+```
+
+
+riavvia
+```
 sudo systemctl restart nginx
+```
 
----------------------------------------------------- Funge ma a schermo intero
+---------------------------------------------------- 
+Crea il seguente file:
+```
 nano ~/.local/share/applications/webapp.desktop
-
+```
 Incolla questo codice:
-
+```
 [Desktop Entry]
 Type=Application
 Name=WebApp
@@ -85,94 +98,23 @@ Exec=firefox --kiosk http://192.168.0.71
 Icon=firefox
 Terminal=false
 Categories=Utility;
+```
 
 Lanciala da Applicazioni oppure con:
+```
 gtk-launch webapp
+```
 
 
--- aggiungi al bashrc:
+- aggiungi al bashrc:
+
+```
 alias launch_webapp='node /home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/src/webapp.js '
-alias src_bashrc='source ~/.bashrc'
 
+alias src_bashrc='source ~/.bashrc'
 
 echo "usefull aliases:"
 echo "src_bashrc"
 echo "launch_webapp"
 echo "gtk-launch webapp"
-<!-- 
--- attivo startup 
-mkdir -p ~/.config/autostart
-
-
---crea il file
-sudo nano ~/.config/autostart/alterego-apps.desktop
-
--- copia
-[Desktop Entry]
-Type=Application
-Name=AlterEGO Apps
-Comment=Start AlterEGO WebApp and GUI
-Exec=bash -c 'source ~/.bashrc && launch_webapp && gtk-launch webapp'
-Terminal=false
-X-GNOME-Autostart-enabled=true
-
---rendi eseguibile
-sudo chmod +x ~/.config/autostart/alterego-apps.desktop
-
---test
-bash -c 'source ~/.bashrc && launch_webapp && gtk-launch webapp' --> Fallito
-
--- creo file 
-sudo nano ~/.config/autostart/start-alterego.sh
--- aggiungi 
-
-#!/bin/bash
-source /home/alterego-vision/.bashrc
-sleep 2  # Wait for system to fully initialize
-node /home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/src/webapp.js &
-sleep 5  # Wait for webapp to start
-gtk-launch webapp
-
--- rendi eseguibile 
-chmod +x ~/.config/autostart/start-alterego.sh
-
-
---crea 
-sudo nano ~/.config/autostart/alterego-apps.desktop
-
--- aggiungi 
-
-[Desktop Entry]
-Type=Application
-Name=AlterEGO Apps
-Comment=Start AlterEGO WebApp and GUI
-Exec=/home/alterego-vision/.config/autostart/start-alterego.sh
-Terminal=false
-X-GNOME-Autostart-enabled=true
-
----------------------------------------------------- funge bene con barra laterale
-sudo apt install nodejs npm -y
-npm install -g nativefier
-
-
-nativefier --name "WebApp" --single-instance --disable-dev-tools --disable-context-menu http://192.168.0.71
-
-./WebApp-linux-x64/WebApp
-
-(Opzionale) Per aggiungerla al menu delle applicazioni:
-
-Copia la cartella in /opt/
-Crea un file .desktop in ~/.local/share/applications/
-
-
----------------------------------------------------- apre motore di ricerca
-nano ~/.config/autostart-webapp.sh
-
-
-#!/bin/bash
-source ~/.bashrc  # Carica gli alias
-webapp &          # Esegue il primo alias in background
-sleep 5           # Aspetta un po'
-webapp_gui &      # Esegue il secondo alias in background
-
-chmod +x ~/.config/autostart-webapp.sh
+```
