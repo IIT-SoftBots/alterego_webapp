@@ -128,7 +128,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/*
 app.post('/execute', async (req, res) => {
     try {
         if (!sshConnected) {
@@ -147,60 +146,6 @@ app.post('/execute', async (req, res) => {
     } catch (error) {
         console.error('Execute error:', error);
         res.status(500).json({ success: false });
-    }
-});
-*/
-
-app.post('/execute', async (req, res) => {
-    const client = new Client(); // Create a new SSH client for this request
-    const connectionParams = {
-        host: NUC_BASE_IP,
-        username: 'alterego-base',
-        privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
-    };
-
-    try {
-        client.on('ready', () => {
-            client.exec(req.body.command, (err, stream) => {
-                if (err) {
-                    console.error('Execute error:', err);
-                    res.status(500).json({ success: false, error: err.message });
-                    client.end(); // Close the connection
-                    return;
-                }
-
-                let output = '';
-                let errorOutput = '';
-
-                stream.on('data', (data) => {
-                    output += data.toString();
-                });
-
-                stream.stderr.on('data', (data) => {
-                    errorOutput += data.toString();
-                });
-
-                stream.on('close', () => {
-                    client.end(); // Close the connection
-                    if (errorOutput) {
-                        console.error('Command error:', errorOutput);
-                        res.status(500).json({ success: false, error: errorOutput });
-                    } else {
-                        res.json({ success: true, output });
-                    }
-                });
-            });
-        });
-
-        client.on('error', (err) => {
-            console.error('SSH connection error:', err);
-            res.status(500).json({ success: false, error: err.message });
-        });
-
-        client.connect(connectionParams); // Connect the client
-    } catch (error) {
-        console.error('Execute error:', error);
-        res.status(500).json({ success: false, error: error.message });
     }
 });
 

@@ -95,7 +95,7 @@ async function initApp() {
     const unlockMonitor = new UnlockClickMonitor(ws, unlockOverlay);
 
     // Get Robot Name
-    robotName = await getRobotName();
+    robotName = "robot_adriano"; //await getRobotName();
 
     // Aggiungi event listener
     mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state, robotName));   

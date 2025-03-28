@@ -3,12 +3,20 @@ export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same con
 export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
 export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
+export const ROS_MASTER_URI = 'export ROS_MASTER_URI=http://192.168.0.110:11311';  // Default: 'export ROS_MASTER_URI=http://localhost:11311'
+export const ROS_IP         = 'export ROS_IP=192.168.0.110'
+export const ROS_HOSTNAME   = 'export ROS_HOSTNAME=192.168.0.110'
+export const ROS_IP_LOCAL         = 'export ROS_IP=192.168.0.111'
+export const ROS_HOSTNAME_LOCAL   = 'export ROS_HOSTNAME=192.168.0.111'
+
 export const ROS_COMMANDS   = {
-    SETUP: 'source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
-    SETUP_LOCAL: 'source ~/.bashrc && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash',
+    SETUP: ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
+    SETUP_LOCAL: ROS_MASTER_URI + ' && ' + ROS_IP_LOCAL + ' && ' + ROS_HOSTNAME_LOCAL + ' &&  source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash',
     CLEANUP: 'source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster',
     CLEAR_LOG: 'truncate -s 0 ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/alterego_robot/config/SystemCheck.txt'
 };
+
+export const SOUND_PATH_LOCAL = '~/AlterEGO_Adriano/EGO_GUI/config/low_battery.mp3'
 
 // Workflow Routines
 export const STATE = {
@@ -48,10 +56,15 @@ export const LAUNCH_COMMANDS = {
     TTS: 'roslaunch alterego_text2speech text2speech.launch',
     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
+    SAY_TIRED: 'rosrun alterego_adjust_docking say_tired.py',
 
     // Play ROSBAGS
     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
-
+    
+    // Additional constants
+    TARGET_LOC: 'Mostra1',
+    DOCK_STATION: 'DockStation',
+    ADJUST_DOCKING: '/adjust_docking',
     STOP_BREATH: '/rosbag_play',
 
     // Stop Core Nodes

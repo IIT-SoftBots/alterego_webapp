@@ -1,5 +1,5 @@
 import { batteryMonitor } from './batterymonitor.js';
-import { NUC_BASE_IP, ROS_CATKIN_WS, ROS_SRC_FOLDER } from './constants.js';
+import { NUC_BASE_IP, ROS_CATKIN_WS, ROS_HOSTNAME, ROS_IP, ROS_MASTER_URI, ROS_SRC_FOLDER } from './constants.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 import { updateBatteryGraphics } from './utils.js';
 
@@ -212,7 +212,7 @@ export async function initializeIMU(ws, robotName) {
  */
 export async function startBatteryCheck(robotName) {
     const MAX_NULL_READINGS = 3;
-    const POLLING_INTERVAL = 3000;
+    const POLLING_INTERVAL = 5000;
     var topicDataOutput;
             
     // Start checking stability
@@ -282,6 +282,43 @@ export async function stopBatteryCheck(){
 
     // Kill battery monitor timers
     batteryMonitor.clearIntervalTimer();    // Stop Battery Check
+}
+
+/**
+ * Checks target reached from topic
+ * @param {string} robotName - Name of the robot
+ */
+export async function targetReachedCheck(robotName) {
+    var topicDataOutput;
+            
+    // Start checking stability
+    try {
+
+        topicDataOutput = await getTopicValue(`/${robotName}/goal_reached`);      // Last at max. 3 retries x 500 ms = 1500 ms      
+
+        if (topicDataOutput == null) {
+            
+            return false;
+        }
+        else {
+            // Extract topic valueS
+            const matchSUC = topicDataOutput.match(/data:\s*(True|False)/i);
+            if (!matchSUC) {
+                console.warn('Could not parse target_reached value from:', topicDataOutput);
+                return false;
+            }                            
+            
+            const targetReached = matchSUC ? (matchSUC[1].toLowerCase() === 'true') : false;
+            
+            return targetReached;
+        }
+        
+    } catch (error) {
+        if (topicDataOutput != null){
+            console.error('Error in topic reading:', error);
+            return false;
+        }
+    }
 }
 
 /**
@@ -369,7 +406,7 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.DOCKING} movementDirection:="${direction}" maxLinDistance:=${maxLinDistance}`);
         
         // Add a small delay before showing the progress popup
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         return new Promise((resolve) => {
             var checkInterval;
@@ -420,6 +457,7 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
         return false;
     }
 }
+
 /**
  * Initializes the robot system
  * Checks stability, activates wheels and arms
@@ -448,11 +486,11 @@ export async function initializeSystem(ws, robotName) {
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
         
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
 
         console.log("Pre Checking arm motors activation...");
 
@@ -460,12 +498,12 @@ export async function initializeSystem(ws, robotName) {
         const motorsActivated = await checkMotorsActivation(ws, robotName);
         if (!motorsActivated) return false;
         
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
         console.log("Pre Checking arm motors movement...");
         
         // Start movement control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
         
         
         const movementInitialized = await checkMovementController(ws);
@@ -498,7 +536,7 @@ export async function getTopicValue(topic) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 ${topic}`
+                        command: ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ` && source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 ${topic}`
                     })
                 });
  

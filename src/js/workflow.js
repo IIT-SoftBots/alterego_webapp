@@ -1,6 +1,6 @@
-import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, checkStability, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup} from './api.js';
+import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup, targetReachedCheck, checkNodeStatus} from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
-import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE } from './constants.js';
+import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE, SOUND_PATH_LOCAL } from './constants.js';
 import { showLoading, updateUI } from './utils.js';
 
 var batteryInterval;
@@ -26,7 +26,7 @@ async function poweroffNUCs(ws) {
     sendLocalCommand(`echo 111 | sudo -S poweroff`);
 }
 
-async function startPowerMonitor(ws, state){
+async function startPowerMonitor(ws, state, robotName){
     const POLLING_INTERVAL = 1500;
 
     batteryInterval = setInterval(async () => {
@@ -45,7 +45,7 @@ async function startPowerMonitor(ws, state){
 
                         // Send Home to Charge
                         batteryMonitor.setShouldAutoRestart(true);
-                        robotHomeClick(ws, state);                        
+                        robotHomeClick(ws, state, robotName);                        
                         state.isRunning = false;
 
                         ws.send(JSON.stringify({
@@ -102,7 +102,7 @@ function stopPowerMonitor(){
 // --------------------- PROCEDURES --------------------------------- //
 async function stopRobot(ws) {
     
-    stopBatteryCheck(); // Need max. 9000 ms to close (3 null_readings x 3000 ms)
+    stopBatteryCheck(); // Need max. 15000 ms to close (3 null_readings x 5000 ms)
 
     stopPowerMonitor(); // Need max. 1500 ms to close
 
@@ -117,7 +117,7 @@ async function stopRobot(ws) {
         showCancelButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
-        timer: 15000,           // 15 sec. to be sure nodes have been killed
+        timer: 18000,           // 18 sec. to be sure nodes have been killed
         timerProgressBar: true,
         showConfirmButton: false
     });  
@@ -127,7 +127,7 @@ async function stopRobot(ws) {
 
 async function deactivateRobot(ws) {
    
-    stopBatteryCheck(); // Need max. 9000 ms to close (3 null_readings x 3000 ms)
+    stopBatteryCheck(); // Need max. 15000 ms to close (3 null_readings x 5000 ms)
 
     stopPowerMonitor(); // Need max. 1500 ms to close
 
@@ -142,7 +142,7 @@ async function deactivateRobot(ws) {
         showCancelButton: false,
         allowOutsideClick: false,
         allowEscapeKey: false,
-        timer: 15000,           // 15 sec. to be sure nodes have been killed
+        timer: 18000,           // 18 sec. to be sure nodes have been killed
         timerProgressBar: true,
         showConfirmButton: false
     });  
@@ -210,13 +210,6 @@ export async function standUpProcedures(ws, robotName) {
         return false;
     }
 
-    // Start Battery Monitor (to do after wheels)
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
-    await new Promise(r => setTimeout(r, 500));    //Wait node has started publishing
-
-    // Start checking battery
-    startBatteryCheck(robotName);
-
     // Activate all remaining additional nodes
 
     // Start Pilot
@@ -230,51 +223,42 @@ export async function standUpProcedures(ws, robotName) {
     await new Promise(r => setTimeout(r, 2000));
 
     // Start Audio Services
+    startAudio(ws, robotName);
+
+    // Start Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Start Navigation
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Send to Target Location
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`);
+    await new Promise(r => setTimeout(r, 4000));
+   
+    // Start Battery Monitor (to do after wheels)
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
+    await new Promise(r => setTimeout(r, 2000));    //Wait node has started publishing
+     
+    // Start checking battery
+    startBatteryCheck(robotName);
+    await new Promise(r => setTimeout(r, 2000));
+
+    return true;
+}
+
+export async function startAudio(ws, robotName) {
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.STT}`);
     await new Promise(r => setTimeout(r, 2000));
 
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.TTS}`);
     await new Promise(r => setTimeout(r, 2000));
 
-    // Start Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
-
-    // Start Navigation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
-
     return true;
 }
 
-export async function stopRobotMovement(ws, robotName){
-    // Kill all movement and tracking nodes
-
-    // Stop Pilot
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
-    await new Promise(r => setTimeout(r, 1000));
-
-    // Stop Body Movement
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
-    await new Promise(r => setTimeout(r, 1000));
-
-    // Stop Body Activation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.L_ARM}`);
-    await new Promise(r => setTimeout(r, 1000));
-    
-    // Stop Additional Nodes
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
-    await new Promise(r => setTimeout(r, 1000));
-     
-    // Stop Face Tracking and Recognition
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 2000));
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Stop Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${robotName}${LAUNCH_COMMANDS.KILL_SPEECH}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Stop Audio Services
+export async function stopAudio(ws, robotName){
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.KILL_SPEECH}`);
     await new Promise(r => setTimeout(r, 2000));
   
@@ -284,21 +268,76 @@ export async function stopRobotMovement(ws, robotName){
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_STT}`);
     await new Promise(r => setTimeout(r, 2000));
 
+    return true;
+}
+
+export async function stopRobotMovement(ws, robotName){
+    // Kill all movement and tracking nodes
+
+    // Stop Pilot
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} /${robotName}${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Stop Body Movement
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.HEAD} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.R_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.L_MAIN} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_MOVEMENT.PITCH}`);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Stop Body Activation
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.R_ARM} /${robotName}${LAUNCH_COMMANDS.STOP_BODY_ACTIVATION.L_ARM}`);
+    await new Promise(r => setTimeout(r, 3000));
+    
+    // Stop Breath Rosbag
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BREATH}`);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Stop Audio Services
+    stopAudio(ws, robotName);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Stop Additional Nodes
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
+    await new Promise(r => setTimeout(r, 3000));
+  
     // Stop Navigation
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 4000));
 
     return true;
 }
 
-export async function goHomeProcedures(ws) {
+export async function goHomeProcedures(ws, robotName) {
 
     // Send Home
-    // Navigation from current position to home room and alignment to charging station within fwdDistance distance (in meters)
-    //TODO
-    var fwdDistance = 0.3;
 
-   return fwdDistance;
+    // Stop Face Tracking and Recognition (to do before adjust docking)
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
+    await new Promise(r => setTimeout(r, 3000));
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
+    await new Promise(r => setTimeout(r, 3000));
+
+    
+    // Navigation from current position to home room
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.DOCK_STATION}'"`);  // Doubled to be sure
+    await new Promise(r => setTimeout(r, 4000));
+
+    // Alignment to charging station within fwdDistance distance (in meters)
+    var targetReached = false;
+    do {
+        targetReached = await targetReachedCheck(robotName);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+    while (!targetReached);
+/*
+    var approachActive = true;
+    do {
+        approachActive = await checkNodeStatus(`/${robotName}${LAUNCH_COMMANDS.ADJUST_DOCKING}`);
+        await new Promise(r => setTimeout(r, 2000));
+    } while(approachActive);
+*/    
+
+    var fwdDistance = 0.0;      // Override previous valutation
+    
+    return fwdDistance;
 }
 
 // --------------------- STATE CHANGE --------------------------------- //
@@ -323,9 +362,9 @@ export async function robotPowerOnClick(ws, state, robotName) {
     robotName = await getRobotName();   // Doubled to be sure
 
     showLoading(true);
-
+   
     // Initialize Timer to monitor power issues and battery level
-    startPowerMonitor(ws, state);
+    startPowerMonitor(ws, state, robotName);
 
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.ACTIVATE_ROBOT);
@@ -363,7 +402,7 @@ export async function robotPowerOffClick(ws, state) {
     updatePipelineState(ws, state, STATE.POWER_OFF_NUCS);
     
     // Power Off the system
-//    poweroffNUCs(ws);            // Power Off everything
+    poweroffNUCs(ws);            // Power Off everything
 
     // Notify next workflow state (useless, everything is off)
     updatePipelineState(ws, state, STATE.INIT);
@@ -371,15 +410,15 @@ export async function robotPowerOffClick(ws, state) {
     return true;
 }
 
-export async function robotHomeClick(ws, state) {
+export async function robotHomeClick(ws, state, robotName) {
 
     showLoading(true);
 
     // Send Home
-    const fwdDistance = await goHomeProcedures(ws);
+    const fwdDistance = await goHomeProcedures(ws, robotName);
 
     // Dock to charging station
-    dockingProcedures(ws, state, fwdDistance);
+    dockingProcedures(ws, state, fwdDistance, robotName);
 
     showLoading(false);
 
@@ -394,11 +433,7 @@ export async function restartFromPauseProcedures(ws, state, robotName) {
     await new Promise(r => setTimeout(r, 2000));
 
     // Start Audio Services
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.STT}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.TTS}`);
-    await new Promise(r => setTimeout(r, 2000));
+    startAudio(ws, robotName);
 
     // Start Breath Rosbag
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
@@ -424,16 +459,10 @@ export async function pauseProcedures(ws, state, robotName) {
 
     // Stop Breath Rosbag
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_BREATH}`);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 2000));
 
     // Stop Audio Services
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.KILL_SPEECH}`);
-    await new Promise(r => setTimeout(r, 2000));
-  
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_TTS}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_STT}`);
+    stopAudio(ws, robotName);
     await new Promise(r => setTimeout(r, 2000));
 
     // Notify next workflow state
@@ -446,15 +475,28 @@ export async function pauseProcedures(ws, state, robotName) {
 
 export async function dockingProcedures(ws, state, maxLinDistance, robotName) {
     
-    // Kill all movement and face tracking group
+    // Kill all movement
     stopRobotMovement(ws, robotName);
+
+    if (maxLinDistance == 0.0){
+    /*    await new Promise(r => setTimeout(() => {
+            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
+        }, 2000));
+    */    // Ask for help playing voice
+        //do{
+            //await playSound();
+            // CALL VOICE
+          //  await new Promise(r => setTimeout(r, 2000));
+        //} 
+        //while (!batteryMonitor.getIsCharging());  
+    }
 
     // Prepare to docking Forward
     const forwardComplete =  await handleDockingMovement(ws, robotName, "forward", maxLinDistance);
     if (!forwardComplete) {
         return false;
     }
-    
+
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.DOCKED);
 
@@ -519,4 +561,14 @@ export async function emergencyButtonPressed(ws, state) {
     updateUI(state);
 
     return true;
+}
+
+async function playSound() {
+    const audio = new Audio(SOUND_PATH_LOCAL);
+    
+    // The promise will block until audio is ended
+    await new Promise(resolve => {
+        audio.addEventListener('ended', resolve);
+        audio.play();
+    });
 }

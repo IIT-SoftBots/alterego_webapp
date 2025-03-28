@@ -88,6 +88,10 @@ export class BatteryMonitor {
         return this.needCharge;         
     } 
 
+    getIsCharging() {
+        return this.isCharging;
+    }
+
     clearOldPowerAlertTrigger(){
         this.oldPowerAlertTrigger = [];
         this.isSetOldPowerAlertTrigger = false;

@@ -56,7 +56,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
 
             // Homing
             batteryMonitor.setShouldAutoRestart(false);
-            robotHomeClick(ws, state);
+            robotHomeClick(ws, state, robotName);
             state.isRunning = false;
 
             ws.send(JSON.stringify({

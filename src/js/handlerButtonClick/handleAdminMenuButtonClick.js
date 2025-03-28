@@ -107,7 +107,7 @@ export class UnlockClickMonitor {
            this.unlockElement.style.display = 'none';
            setTimeout(() => {
                 this.unlockElement.style.display = 'block';
-            }, 10000);      // Lock again after 10 seconds
+            }, 30000);      // Lock again after 30 seconds
         }
     }
 
