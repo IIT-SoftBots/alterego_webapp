@@ -180,7 +180,7 @@ app.post('/execute', async (req, res) => {
                     errorOutput += data.toString();
                 });
 
-                stream.on('close', () => {
+                /*stream.on('close', () => {
                     client.end(); // Close the connection
                     if (errorOutput) {
                         console.error('Command error:', errorOutput);
@@ -188,7 +188,10 @@ app.post('/execute', async (req, res) => {
                     } else {
                         res.json({ success: true, output });
                     }
-                });
+                });*/
+
+                // Rispondi subito con successo
+                res.json({ success: true });
             });
         });
 

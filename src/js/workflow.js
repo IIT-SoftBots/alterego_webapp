@@ -1,4 +1,4 @@
-import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup, targetReachedCheck, checkNodeStatus} from './api.js';
+import { sendCommand,sendLocalCommand, getRobotName, initializeIMU, handleDockingMovement, startBatteryCheck, initializeSystem, stopBatteryCheck, waitForPowerAlertTrigger, showSyncedPopup, targetReachedCheck, checkNodeStatus, pingRemoteComputer} from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE, SOUND_PATH_LOCAL } from './constants.js';
 import { showLoading, updateUI } from './utils.js';
@@ -478,11 +478,11 @@ export async function dockingProcedures(ws, state, maxLinDistance, robotName) {
     // Kill all movement
     stopRobotMovement(ws, robotName);
 
-    if (maxLinDistance == 0.0){
-    /*    await new Promise(r => setTimeout(() => {
+ /*   if (maxLinDistance == 0.0){
+        await new Promise(r => setTimeout(() => {
             sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
         }, 2000));
-    */    // Ask for help playing voice
+        // Ask for help playing voice
         //do{
             //await playSound();
             // CALL VOICE
@@ -490,11 +490,15 @@ export async function dockingProcedures(ws, state, maxLinDistance, robotName) {
         //} 
         //while (!batteryMonitor.getIsCharging());  
     }
-
+*/
     // Prepare to docking Forward
     const forwardComplete =  await handleDockingMovement(ws, robotName, "forward", maxLinDistance);
     if (!forwardComplete) {
         return false;
+    }
+
+    if (maxLinDistance == 0.0){
+        sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
     }
 
     // Notify next workflow state
@@ -561,6 +565,40 @@ export async function emergencyButtonPressed(ws, state) {
     updateUI(state);
 
     return true;
+}
+
+export async function overrideInitRobotState(ws, state){
+        
+    const isRemoteComputerOnline = await pingRemoteComputer();
+    if (isRemoteComputerOnline){
+
+        // Kill everything
+        sendCommand(ROS_COMMANDS.CLEANUP);
+        sendCommand(ROS_COMMANDS.CLEAR_LOG);
+    }
+    
+    // Popup - Wait nodes have been killed
+    await showSyncedPopup(ws, {
+        title: 'Initialization',
+        text: "State is initializing. Please wait...",
+        icon: 'warning',
+        showCancelButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 5000,
+        timerProgressBar: true,
+        showConfirmButton: false
+    });  
+
+    state.pipelineState = STATE.INIT;
+    state.isPowered = false;
+            
+    ws.send(JSON.stringify({
+        type: 'stateUpdate',
+        data: { pipelineState: state.pipelineState,
+                isPowered: state.isPowered
+        }
+    }));    
 }
 
 async function playSound() {

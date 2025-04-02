@@ -56,14 +56,14 @@ export const LAUNCH_COMMANDS = {
     TTS: 'roslaunch alterego_text2speech text2speech.launch',
     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
-    SAY_TIRED: 'rosrun alterego_adjust_docking say_tired.py',
+    SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
 
     // Play ROSBAGS
     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
     
     // Additional constants
     TARGET_LOC: 'Mostra1',
-    DOCK_STATION: 'DockStation',
+    DOCK_STATION: 'DockStation',    
     ADJUST_DOCKING: '/adjust_docking',
     STOP_BREATH: '/rosbag_play',
 

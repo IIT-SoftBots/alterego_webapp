@@ -8,7 +8,7 @@ import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils
 import { getRobotName, showSyncedPopup } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { STATE } from './constants.js';
-import { goHomeProcedures, restartAuto } from './workflow.js';
+import { goHomeProcedures, overrideInitRobotState, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
@@ -124,6 +124,9 @@ async function initApp() {
             type: 'stateUpdate',
             data: { pipelineState: state.pipelineState }
         }));    
+    }
+    else {  // Override initial web app condition to STATE_INIT [mod. ADRIANO]
+        overrideInitRobotState(ws, state);
     }
 
     // Aggiorna l'interfaccia utente 
