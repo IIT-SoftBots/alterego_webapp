@@ -8,7 +8,7 @@ const { exec } = require('child_process'); // Importa exec
 let pageState = {
     isPowered: false,
     isRunning: false,
-    pipelineState: {},
+    pipelineState: 0,
     uiState: {
         activePopup: null,
         notifications: []
@@ -16,7 +16,7 @@ let pageState = {
 };
 
 const stateFile = path.join(__dirname, 'state.json');
-
+console.log("📁 Stato salvato in:", stateFile);
 if (fs.existsSync(stateFile)) {
     pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
 }

@@ -1,18 +1,21 @@
 // Importa le costanti e le funzioni utilities necessarie
-import { handlePowerButtonClick } from './handlerButtonClick/handlePowerButtonClick.js';
-import { handleStartButtonClick } from './handlerButtonClick/handleStartButtonClick.js';
-import { handleConfigButtonClick } from './handlerButtonClick/handleConfigButtonClick.js';
-import { handleHomeButtonClick } from './handlerButtonClick/handleHomeButtonClick.js';
+import { handleMainButtonClick } from './handlerButtonClick/handleMainButtonClick.js';
+import { ClickMonitor, clickMonitorClose, UnlockClickMonitor } from './handlerButtonClick/handleAdminMenuButtonClick.js';
+import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
-import { updateUI, loadComponent } from './utils.js';
-import { showSyncedPopup } from './api.js';
+import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
+import { getRobotName, showSyncedPopup } from './api.js';
+import { batteryMonitor } from './batterymonitor.js';
+import { STATE } from './constants.js';
+import { goHomeProcedures, overrideInitRobotState, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
 let state = {
     isPowered: false,    // Stato di accensione del sistema
     isRunning: false,    // Stato di esecuzione del sistema
+    pipelineState: 0,    // Workflow State
     uiState: {
         activePopup: null,     // Popup attualmente visualizzato
         notifications: []      // Coda delle notifiche (max 10)
@@ -22,13 +25,16 @@ let state = {
 // Connessione WebSocket globale
 let ws;
 
+// Nome del robot nel file .bashrc
+let robotName;
+
 /**
  * Inizializza la connessione WebSocket
  * Gestisce gli aggiornamenti di stato e la riconnessione automatica
  */
 function initWebSocket() {
     ws = new WebSocket(`ws://localhost:3000`);
-    
+   
     // Handler per i messaggi in arrivo
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -68,32 +74,66 @@ function initWebSocket() {
  * Carica i componenti e configura gli event listener
  */
 async function initApp() {
+    
     // Inizializza WebSocket
     initWebSocket();
-    
+
     // Carica i componenti UI
-    await loadComponent('button-grid', 'components/button-grid.html');
-    await loadComponent('status-panel', 'components/status-panel.html');
+    const resLoad = await loadComponent('button-grid', 'components/button-grid.html');
+    const resComp = await loadComponent('status-panel', 'components/status-panel.html');
 
     // Configura i pulsanti
-    const powerBtn = document.getElementById('powerBtn');
-    const startBtn = document.getElementById('startBtn');
-    const configBtn = document.getElementById('configBtn');
-    const homeBtn = document.getElementById('homeBtn');
+    const mainBtn = document.getElementById('mainBtn');
+    const secondBtn = document.getElementById('secondBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const logoBtn = document.getElementById('alterEgoLogo');
+    const unlockOverlay = document.getElementById('unlockOverlay');
+    
+    // Configura monitor per clicks e batteria
+    const monitor = new ClickMonitor(ws, logoBtn);
+    const unlockMonitor = new UnlockClickMonitor(ws, unlockOverlay);
+
+    // Get Robot Name
+    robotName = "robot_adriano"; //await getRobotName();
 
     // Aggiungi event listener
-    powerBtn.addEventListener('click', () => handlePowerButtonClick(ws, state));  
-    startBtn.addEventListener('click', () => handleStartButtonClick(ws, state));  
-    configBtn.addEventListener('click', () => handleConfigButtonClick(ws, state));
-    homeBtn.addEventListener('click',  () => handleHomeButtonClick(ws, state));
+    mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state, robotName));   
+    secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state, robotName));
+    settingsBtn.addEventListener('click',  () => settingsAction());
+    closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
 
-    // Aggiorna UI iniziale
-    updateUI(state);
+    // Gestione del click fuori dal popup per chiuderlo
+    document.getElementById('popupOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAdminMenu();
+        }
+    });
 
     // Rimuovi classe loading
     document.querySelectorAll('.loading').forEach(el => {
         el.classList.add('loaded');
     });
+    
+    if (state.pipelineState == STATE.RESTART_AUTO){
+        restartAuto(ws, state, robotName);
+
+        state.pipelineState = STATE.INIT;
+            
+        ws.send(JSON.stringify({
+            type: 'stateUpdate',
+            data: { pipelineState: state.pipelineState }
+        }));    
+    }
+    else {  // Override initial web app condition to STATE_INIT [mod. ADRIANO]
+        overrideInitRobotState(ws, state);
+    }
+
+    // Aggiorna l'interfaccia utente 
+    updateUI(state);
+
+    // Start Battery Monitor
+    batteryMonitor.start(ws, state.pipelineState);
 }
 
 // Avvia l'applicazione quando il DOM è pronto

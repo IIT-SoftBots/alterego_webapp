@@ -1,0 +1,11 @@
+{
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "**/*.scss",
+        "**/*.sass",
+        "**/*.ts"
+    ],
+    "liveServer.settings.AdvanceCustomBrowserCmdLine": "node /home/alterego-vision/alterego_webapp/src/webapp.js",
+    "liveServer.settings.ChromeDebuggingAttachment": false,
+    "liveServer.settings.port": 3000
+}

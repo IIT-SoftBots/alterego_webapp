@@ -1,4 +1,5 @@
-import { UI_STATES } from './constants.js';
+import { batteryMonitor } from './batterymonitor.js';
+import { STATE, UI_STATES } from './constants.js';
 
 // Salva lo stato dei pulsanti nel localStorage
 export function saveButtonState(buttonId, state) {
@@ -11,39 +12,107 @@ export function loadButtonState(buttonId) {
 }
 
 // Aggiorna l'interfaccia utente in base allo stato
-export function updateUI(state) {
-    const powerBtn = document.getElementById('powerBtn');
-    const startBtn = document.getElementById('startBtn');
-    const homeBtn = document.getElementById('homeBtn');
+export function updateUI(state) {    
+
+    const mainBtn = document.getElementById('mainBtn');
+    const secondBtn = document.getElementById('secondBtn');
     const powerStatus = document.getElementById('powerStatus');
     const systemStatus = document.getElementById('systemStatus');
 
     // Aggiorna stato power
-    if (state.isPowered) {
-        powerBtn.classList.add('on');
-        startBtn.disabled = false;
-        homeBtn.disabled = false;
+    if (state.isPowered && !batteryMonitor.getPowerAlert()) {
         powerStatus.style.backgroundColor = UI_STATES.POWER_ON.color;
         document.querySelector('#powerStatus + span').textContent = UI_STATES.POWER_ON.text;
     } else {
-        powerBtn.classList.remove('on');
-        startBtn.disabled = true;
-        homeBtn.disabled = true;
         powerStatus.style.backgroundColor = UI_STATES.POWER_OFF.color;
         document.querySelector('#powerStatus + span').textContent = UI_STATES.POWER_OFF.text;
     }
 
     // Aggiorna stato sistema
     if (state.isRunning) {
-        startBtn.classList.add('running');
-        startBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
         systemStatus.style.backgroundColor = UI_STATES.SYSTEM_RUNNING.color;
         document.querySelector('#systemStatus + span').textContent = UI_STATES.SYSTEM_RUNNING.text;
     } else {
-        startBtn.classList.remove('running');
-        startBtn.innerHTML = '<i class="fas fa-play"></i><span>Start</span>';
         systemStatus.style.backgroundColor = UI_STATES.SYSTEM_READY.color;
         document.querySelector('#systemStatus + span').textContent = UI_STATES.SYSTEM_READY.text;
+    }
+    
+    // Aggiorna stato dei pulsanti
+    switch(state.pipelineState){
+        case STATE.INIT:
+            mainBtn.disabled = false;        
+            secondBtn.disabled = false;        
+            updateMainBtn('start_robot');
+            updateSecondBtn('power_off');
+            break;
+        case STATE.ACTIVATE_ROBOT:    
+            mainBtn.disabled = true;  
+            secondBtn.disabled = true;      
+            break;
+        case STATE.STAND_UP:
+            mainBtn.disabled = true;
+            secondBtn.disabled = true;        
+            break;
+        case STATE.WORK_MODE:
+            mainBtn.disabled = false;
+            secondBtn.disabled = false;        
+            updateMainBtn('pause');
+            updateSecondBtn('home');
+            break;
+        case STATE.PAUSED:
+            mainBtn.disabled = false;        
+            secondBtn.disabled = false;        
+            updateMainBtn('play');
+            break;
+        case STATE.DOCKED:
+            mainBtn.disabled = false;        
+            secondBtn.disabled = false;        
+            updateMainBtn('start_robot');
+            updateSecondBtn('power_off');
+            break;    
+        case STATE.RECOVERY_FROM_EMERGENCY:
+            mainBtn.disabled = false;        
+            secondBtn.disabled = false;        
+            updateMainBtn('start_robot');
+            updateSecondBtn('power_off');
+            break;
+        default:
+            break;
+    }
+}
+
+function updateMainBtn(show){
+
+    const mainBtn = document.getElementById('mainBtn');
+
+    if (show == 'start_robot'){
+        mainBtn.innerHTML = '<i class="fas fa-circle-play"></i><span>Start Robot</span>';        
+        mainBtn.classList.remove('play');
+        mainBtn.classList.remove('pause');
+    }
+    else if (show == 'pause'){
+        mainBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+        mainBtn.classList.add('play'); 
+        mainBtn.classList.remove('pause');       
+    }
+    else if (show == 'play'){
+        mainBtn.innerHTML = '<i class="fas fa-play"></i><span>Play</span>';
+        mainBtn.classList.add('pause');
+        mainBtn.classList.remove('play');
+    }
+}
+
+function updateSecondBtn(show){
+
+    const secondBtn = document.getElementById('secondBtn');
+
+    if (show == 'power_off'){
+        secondBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Power Off</span>';  
+        secondBtn.classList.remove('home');      
+    }
+    else if (show == 'home'){
+        secondBtn.innerHTML = '<i class="fas fa-home"></i><span>Home</span>';
+        secondBtn.classList.add('home');        
     }
 }
 
@@ -61,25 +130,49 @@ export async function loadComponent(elementId, componentPath) {
 export function updateBatteryGraphics(isCharging, batteryLevel){
     const batteryIcon = document.getElementById('batteryIcon');
 
-    if (isCharging){
-        batteryIcon.innerHTML = "<i class=\"fa fa-charging-station\"></i>";
+    batteryIcon.innerHTML = "Battery ";
+    
+    if (batteryLevel > 75){          //75-100%
+        batteryIcon.innerHTML += "<i class=\"fa fa-battery-full\"></i>";
     }
     else {
-        if (batteryLevel > 75){          //75-100%
-            batteryIcon.innerHTML = "<i class=\"fa fa-battery-full\"></i>";
+        if (batteryLevel > 50){      //50-75%
+            batteryIcon.innerHTML += "<i class=\"fa fa-battery-three-quarters\"></i>";
         }
         else {
-            if (batteryLevel > 50){      //50-75%
-                batteryIcon.innerHTML = "<i class=\"fa fa-battery-three-quarters\"></i>";
+            if (batteryLevel > 25){  //25-50%
+                batteryIcon.innerHTML += "<i class=\"fa fa-battery-half\"></i>";
             }
-            else {
-                if (batteryLevel > 25){  //25-50%
-                    batteryIcon.innerHTML = "<i class=\"fa fa-battery-half\"></i>";
-                }
-                else {                  //0-25%
-                    batteryIcon.innerHTML = "<i class=\"fa fa-battery-quarter\"></i>";
-                }
-            }   
-        }
+            else {                  //0-25%
+                batteryIcon.innerHTML += "<i class=\"fa fa-battery-quarter\"></i>";
+            }
+        }   
+    }
+    
+    if (isCharging){
+        batteryIcon.innerHTML += " <i class=\"fa fa-charging-station\"></i>";
     }    
+}
+
+export function openPopup() {
+    document.getElementById('popupOverlay').style.display = 'block';
+    document.getElementById('popup').style.display = 'block';
+}
+
+// Funzione per l'azione Settings
+export function settingsAction() {
+    // Esempio di azione: mostra un messaggio
+    alert('Settings... TODO');
+    closeAdminMenu(); // Chiude il popup dopo l'azione
+}
+
+// Funzione per chiudere il popup
+export function closeAdminMenu() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    document.getElementById('popup').style.display = 'none';
+}
+
+export function showLoading(val) {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = (val)?'flex':'none';
 }

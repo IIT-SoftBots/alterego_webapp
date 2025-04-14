@@ -4,22 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlterEGO Web App</title>
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/main.css">
 </head>
-<body>
-    <h1 class="title loading">AlterEGO Control Panel</h1>
+<body class="loading">
+    <!-- <h1 class="title loading">AlterEGO Control Panel</h1> -->
     <div class="button-container loading">
-        <!-- Button Grid Component -->
+        
+        <img class="logo" id="alterEgoLogo" src="/images/logo.png" alt="Logo">
+        
+        <!-- Button Grid and Admin Hidden Menu Component -->
         <div id="button-grid"></div>
 
         <!-- Status Panel Component -->
         <div id="status-panel"></div>
-    </div>
+    </div>        
 
     <!-- Nota il type="module" aggiunto -->
     <script type="module" src="js/constants.js"></script>
+    <script type="module" src="js/workflow.js"></script>
+    <script type="module" src="js/batterymonitor.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/api.js"></script>
     <script type="module" src="js/websocket.js"></script>

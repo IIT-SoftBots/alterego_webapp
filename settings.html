@@ -140,7 +140,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ ip: '192.168.0.70' })
+                    body: JSON.stringify({ ip: NUC_BASE_IP })
                 })
                     .then(response => response.json())
                     .then(data => {
