@@ -476,7 +476,7 @@ export async function initializeSystem(ws, robotName) {
 
         const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
             title: 'Activating Wheels',
-            text: 'Pay attention!! Robot is activating balancing. Click OK to continue.', // Modified text
+            text: 'Pay attention!! Robot is activating balancing. RAISE the ROBOT and then Click OK to continue.', // Modified text
             icon: 'warning',
             // timer: 5000, // Removed timer
             // timerProgressBar: true, // Removed timer progress bar
@@ -502,8 +502,8 @@ export async function initializeSystem(ws, robotName) {
         }
 
         // Start wheels control
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        await new Promise(r => setTimeout(r, 2000));
+        // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+        // await new Promise(r => setTimeout(r, 2000));
         
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);

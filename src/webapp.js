@@ -4,13 +4,22 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
+const os = require('os'); // Add os module to get system information
 
 // Importa WebSocket
 const { wss } = require('./js/websocket');
 
 const app = express();
 const port = 3000;
-const NUC_BASE_IP = '192.168.88.50';
+// Initialize with a default value
+let NUC_BASE_IP = '192.168.88.110';
+let NUC_VISION_IP = '192.168.88.111';
+
+// Get current username
+const currentUsername = os.userInfo().username;
+// Create the remote username once for consistent use
+const remoteUsername = currentUsername.replace('-vision', '-base');
+console.log(`\nCurrent Username: ${currentUsername} \nRemote Username: ${remoteUsername}\n`);
 
 // Middleware setup
 app.use(bodyParser.json());
@@ -20,17 +29,66 @@ app.use(express.json());
 app.use(express.static(__dirname));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-// Start server
-const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${port}`);
+// Get host IP and derive NUC_BASE_IP using hostname -I
+// Fixed function with proper Promise handling
+function getNucIPs() {
+    return new Promise((resolve, reject) => {
+        exec('hostname -I', (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error getting IPs:', error);
+                reject(error);
+                return;
+            }
+            
+            // Get first IP address from hostname -I output
+            const hostIP = stdout.trim().split(' ')[0];
+            
+            // Only remove the last digit from the last octet
+            const ipParts = hostIP.split('.');
+            const lastOctet = ipParts[3];
+            ipParts[3] = lastOctet.slice(0, -1) + '0';
+            
+            const nucIP = ipParts.join('.');
+            
+            console.log(`\nCurrent UserIP: ${hostIP} \nRemote UserIP: ${nucIP}\n`);
+            resolve({ base: nucIP, vision: hostIP });
+        });
+    });
+}
+// Use the async function properly
+getNucIPs().then(ips => {
+    NUC_BASE_IP = ips.base;
+    NUC_VISION_IP = ips.vision;
+    
+    // Uncomment your API endpoint here
+    app.get('/api/config', (req, res) => {
+        res.json({ 
+            NUC_BASE_IP: NUC_BASE_IP, 
+            NUC_VISION_IP: NUC_VISION_IP
+        });
+    });
+    
+    // Start server only after IPs are set
+    startServer();
+}).catch(err => {
+    console.error('Failed to get IPs:', err);
+    // Use default IPs
+    startServer();
 });
 
-// Collegamento WebSocket al server HTTP
-server.on('upgrade', (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
+// Move server startup to a function
+function startServer() {
+    const server = app.listen(port, '0.0.0.0', () => {
+        console.log(`Server running at http://0.0.0.0:${port}`);
     });
-});
+    
+    // Collegamento WebSocket al server HTTP
+    server.on('upgrade', (request, socket, head) => {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request);
+        });
+    });
+}
 
 // SSH setup
 let sshConnected = false;
@@ -42,8 +100,8 @@ function connectSSH() {
     return new Promise((resolve, reject) => {
         const connectionParams = {
             host: NUC_BASE_IP,
-            username: 'goldenego-base',
-            privateKey: fs.readFileSync('/home/goldenego-vision/.ssh/id_rsa')
+            username: remoteUsername,
+            privateKey: fs.readFileSync(`/home/${currentUsername}/.ssh/id_rsa`)
         };
 
         sshClient.connect(connectionParams);
@@ -133,8 +191,8 @@ app.post('/execute', async (req, res) => {
     const client = new Client(); // Create a new SSH client for this request
     const connectionParams = {
         host: NUC_BASE_IP,
-        username: 'alterego-base',
-        privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
+        username: remoteUsername,
+        privateKey: fs.readFileSync(`/home/${currentUsername}/.ssh/id_rsa`)
     };
 
     try {

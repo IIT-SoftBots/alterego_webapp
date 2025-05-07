@@ -1,7 +1,7 @@
 {
-  "isPowered": false,
+  "isPowered": true,
   "isRunning": false,
-  "pipelineState": 0,
+  "pipelineState": 3,
   "type": "stateRequest",
   "uiState": {
     "activePopup": null

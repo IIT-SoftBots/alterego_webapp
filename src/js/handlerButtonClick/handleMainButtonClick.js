@@ -29,7 +29,6 @@ export async function handleMainButtonClick(ws, state, robotName) {
             }));
             return;
         }
-        console.log('Main button clicked in INIT, DOCKED or RECOVERY state');
 
                                  
 
@@ -62,7 +61,6 @@ export async function handleMainButtonClick(ws, state, robotName) {
         if (state.pipelineState == STATE.INIT ||
             state.pipelineState == STATE.DOCKED ||
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
-            console.log('Main button clicked in INIT, DOCKED or RECOVERY state');
 
             // // First popup - Global warning
             // const warnAnsw = await showSyncedPopup(ws, {

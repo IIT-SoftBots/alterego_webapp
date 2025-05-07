@@ -7,7 +7,7 @@ import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButton
 import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
 import { getRobotName, showSyncedPopup } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
-import { STATE } from './constants.js';
+import { STATE , initializeConfig } from './constants.js';
 import { goHomeProcedures, overrideInitRobotState, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
@@ -74,7 +74,9 @@ function initWebSocket() {
  * Carica i componenti e configura gli event listener
  */
 async function initApp() {
-    
+    // Initialize config first
+    await initializeConfig();
+    console.log('Config initialized');
     // Inizializza WebSocket
     initWebSocket();
 

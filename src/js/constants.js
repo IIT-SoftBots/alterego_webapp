@@ -1,22 +1,62 @@
 // ROS related commands
-export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same const in webapp.js
-export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
-export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
-export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
-export const ROS_MASTER_URI = 'export ROS_MASTER_URI=http://192.168.0.110:11311';  // Default: 'export ROS_MASTER_URI=http://localhost:11311'
-export const ROS_IP         = 'export ROS_IP=192.168.0.110'
-export const ROS_HOSTNAME   = 'export ROS_HOSTNAME=192.168.0.110'
-export const ROS_IP_LOCAL         = 'export ROS_IP=192.168.0.111'
-export const ROS_HOSTNAME_LOCAL   = 'export ROS_HOSTNAME=192.168.0.111'
+// Use a placeholder value that will be updated at runtime
+export let NUC_BASE_IP = '192.168.88.110';  
+export let NUC_VISION_IP = '192.168.88.111';  
+export let ROS_MASTER_URI = `export ROS_MASTER_URI=http://${NUC_BASE_IP}:11311`;
+export let ROS_IP = `export ROS_IP=${NUC_BASE_IP}`;
+export let ROS_HOSTNAME = `export ROS_HOSTNAME=${NUC_BASE_IP}`;
+export let ROS_IP_LOCAL = `export ROS_IP=${NUC_VISION_IP}`;
+export let ROS_HOSTNAME_LOCAL = `export ROS_HOSTNAME=${NUC_VISION_IP}`;
 
-export const ROS_COMMANDS   = {
+export const ROS_CATKIN_WS = '~/catkin_ws';  // Default: '~/catkin_ws'
+export const ROS_SRC_FOLDER = '/src/AlterEGO_v2';  // Default: '/src'
+export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_v2/catkin_ws';  // Default: '~/catkin_ws'
+
+// export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same const in webapp.js
+// export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
+// export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
+// export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
+// export const ROS_MASTER_URI = 'export ROS_MASTER_URI=http://192.168.0.110:11311';  // Default: 'export ROS_MASTER_URI=http://localhost:11311'
+// export const ROS_IP         = 'export ROS_IP=192.168.0.110'
+// export const ROS_HOSTNAME   = 'export ROS_HOSTNAME=192.168.0.110'
+// export const ROS_IP_LOCAL         = 'export ROS_IP=192.168.0.111'
+// export const ROS_HOSTNAME_LOCAL   = 'export ROS_HOSTNAME=192.168.0.111'
+
+export let ROS_COMMANDS = {
     SETUP: ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
     SETUP_LOCAL: ROS_MASTER_URI + ' && ' + ROS_IP_LOCAL + ' && ' + ROS_HOSTNAME_LOCAL + ' &&  source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash',
     CLEANUP: 'source /opt/ros/noetic/setup.bash && rosnode kill -a && killall -9 rosmaster',
     CLEAR_LOG: 'truncate -s 0 ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/alterego_robot/config/SystemCheck.txt'
 };
 
-export const SOUND_PATH_LOCAL = '~/AlterEGO_Adriano/EGO_GUI/config/low_battery.mp3'
+// Function to update the IP address
+export async function initializeConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+            const config = await response.json();
+            NUC_BASE_IP = config.NUC_BASE_IP;
+            NUC_VISION_IP = config.NUC_VISION_IP || NUC_VISION_IP;
+            
+            // Update derived values
+            ROS_MASTER_URI = `export ROS_MASTER_URI=http://${NUC_BASE_IP}:11311`;
+            ROS_IP = `export ROS_IP=${NUC_BASE_IP}`;
+            ROS_HOSTNAME = `export ROS_HOSTNAME=${NUC_BASE_IP}`;
+            ROS_IP_LOCAL = `export ROS_IP=${NUC_VISION_IP}`;
+            ROS_HOSTNAME_LOCAL = `export ROS_HOSTNAME=${NUC_VISION_IP}`;
+            
+            // Update ROS_COMMANDS
+            ROS_COMMANDS.SETUP = ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash';
+            ROS_COMMANDS.SETUP_LOCAL = ROS_MASTER_URI + ' && ' + ROS_IP_LOCAL + ' && ' + ROS_HOSTNAME_LOCAL + ' &&  source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash';
+            
+            console.log(`Config initialized with NUC_BASE_IP: ${NUC_BASE_IP}, NUC_VISION_IP: ${NUC_VISION_IP}`);
+        }
+    } catch (error) {
+        console.error('Failed to initialize config:', error);
+    }
+}
+
+export const SOUND_PATH_LOCAL = '~/AlterEGO_v2/EGO_GUI/config/low_battery.mp3'
 
 // Workflow Routines
 export const STATE = {
