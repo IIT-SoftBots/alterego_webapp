@@ -194,10 +194,10 @@ export async function activateRobotProcedures(ws, robotName) {
     }
 
     // Docking Backward
-    const backwardComplete =  await handleDockingMovement(ws, robotName, "backward", 0.5);
-    if (!backwardComplete) {
-        return false;
-    }
+    // const backwardComplete =  await handleDockingMovement(ws, robotName, "backward", 0.5);
+    // if (!backwardComplete) {
+    //     return false;
+    // }
 
     return true;
 }
@@ -215,27 +215,27 @@ export async function standUpProcedures(ws, robotName) {
     // Start Pilot
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.PILOT}`);
 
-    // Start FACE EXPRESSION
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+    // // Start FACE EXPRESSION
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
 
-    // Start FACE TRACKING and FACE RECOGNITION
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // // Start FACE TRACKING and FACE RECOGNITION
+    // sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+    // await new Promise(r => setTimeout(r, 2000));
 
-    // Start Audio Services
-    startAudio(ws, robotName);
+    // // Start Audio Services
+    // startAudio(ws, robotName);
 
-    // Start Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // // Start Breath Rosbag
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BREATH}`);
+    // await new Promise(r => setTimeout(r, 2000));
 
-    // Start Navigation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // // Start Navigation
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
+    // await new Promise(r => setTimeout(r, 2000));
 
-    // Send to Target Location
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`);
-    await new Promise(r => setTimeout(r, 4000));
+    // // Send to Target Location
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`);
+    // await new Promise(r => setTimeout(r, 4000));
    
     // Start Battery Monitor (to do after wheels)
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY}`);
@@ -364,7 +364,7 @@ export async function robotPowerOnClick(ws, state, robotName) {
     showLoading(true);
    
     // Initialize Timer to monitor power issues and battery level
-    startPowerMonitor(ws, state, robotName);
+    // startPowerMonitor(ws, state, robotName);
 
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.ACTIVATE_ROBOT);
@@ -393,10 +393,10 @@ export async function robotPowerOnClick(ws, state, robotName) {
 export async function robotPowerOffClick(ws, state) {
 
     // Stop Robot to Power Off
-    const stopRobotPowerOff = await stopRobotToPowerOff(ws, state);
-    if (!stopRobotPowerOff) {
-        return false;
-    }
+    // const stopRobotPowerOff = await stopRobotToPowerOff(ws, state);
+    // if (!stopRobotPowerOff) {
+    //     return false;
+    // }
     
     // Notify next workflow state
     updatePipelineState(ws, state, STATE.POWER_OFF_NUCS);

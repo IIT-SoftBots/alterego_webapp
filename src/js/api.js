@@ -474,15 +474,32 @@ export async function initializeSystem(ws, robotName) {
 //        const isStable = await checkStability(ws, robotName);
 //        if (!isStable) return false;
 
-        // Popup - Info to clear space
-        await showSyncedPopup(ws, {
+        const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
             title: 'Activating Wheels',
-            text: 'Pay attention!! Robot is activating balancing...',
+            text: 'Pay attention!! Robot is activating balancing. Click OK to continue.', // Modified text
             icon: 'warning',
-            timer: 5000,
-            timerProgressBar: true,
-            showConfirmButton: false
+            // timer: 5000, // Removed timer
+            // timerProgressBar: true, // Removed timer progress bar
+            showConfirmButton: true, // Show confirm button
+            confirmButtonText: 'OK', // Set confirm button text
+            allowOutsideClick: false, // Prevent closing by clicking outside
+            allowEscapeKey: false, // Prevent closing with ESC key
+            showCancelButton: false // Ensure no cancel button is shown
         });
+
+        // Check if the user confirmed
+        if (!confirmWheels) {
+            console.log('Wheel activation cancelled by user.');
+            // Optionally, show another popup or handle cancellation
+            await showSyncedPopup(ws, {
+                title: 'Cancelled',
+                text: 'Wheel activation was cancelled.',
+                icon: 'info',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            return false; // Stop the initialization if cancelled
+        }
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);

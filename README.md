@@ -110,12 +110,5 @@ gtk-launch webapp
 - aggiungi al bashrc:
 
 ```
-alias launch_webapp='node /home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/src/webapp.js '
-
-alias src_bashrc='source ~/.bashrc'
-
-echo "usefull aliases:"
-echo "src_bashrc"
-echo "launch_webapp"
-echo "gtk-launch webapp"
+source ~/AlterEGO_v2/EGO_GUI/usefull_scripts.sh
 ```

@@ -42,8 +42,8 @@ function connectSSH() {
     return new Promise((resolve, reject) => {
         const connectionParams = {
             host: NUC_BASE_IP,
-            username: 'alterego-base',
-            privateKey: fs.readFileSync('/home/alterego-vision/.ssh/id_rsa')
+            username: 'goldenego-base',
+            privateKey: fs.readFileSync('/home/goldenego-vision/.ssh/id_rsa')
         };
 
         sshClient.connect(connectionParams);
@@ -128,28 +128,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/*
-app.post('/execute', async (req, res) => {
-    try {
-        if (!sshConnected) {
-            await connectSSH();
-        }
-        // Esegui il comando senza attendere l'output
-        sshClient.exec(req.body.command, (err) => {
-            if (err) {
-                console.error('Execute error:', err);
-                res.status(500).json({ success: false });
-                return;
-            }
-            // Rispondi subito con successo
-            res.json({ success: true });
-        });
-    } catch (error) {
-        console.error('Execute error:', error);
-        res.status(500).json({ success: false });
-    }
-});
-*/
 
 app.post('/execute', async (req, res) => {
     const client = new Client(); // Create a new SSH client for this request
