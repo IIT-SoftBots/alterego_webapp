@@ -56,15 +56,42 @@ function getNucIPs() {
     });
 }
 // Use the async function properly
-getNucIPs().then(ips => {
+getNucIPs().then(async ips => {
     NUC_BASE_IP = ips.base;
     NUC_VISION_IP = ips.vision;
     
-    // Uncomment your API endpoint here
+    // Get the robot version from .bashrc
+    let robotVersion = 2; // Default value
+    try {
+        // Execute the command directly without SSH
+        const result = await new Promise((resolve, reject) => {
+            exec('grep -oP "(?<=export AlterEgoVersion=).*" ~/.bashrc', (error, stdout, stderr) => {
+                if (error) {
+                    console.warn('Could not find AlterEgoVersion in .bashrc, using default value');
+                    resolve(null);
+                } else {
+                    resolve(stdout.trim());
+                }
+            });
+        });
+        
+        if (result) {
+            const version = parseInt(result, 10);
+            if (!isNaN(version)) {
+                robotVersion = version;
+                console.log(`\nRobot Version: ${robotVersion}\n`);
+            }
+        }
+    } catch (error) {
+        console.error('Error getting robot version:', error);
+    }
+    
+    // Update config endpoint to include robot version
     app.get('/api/config', (req, res) => {
         res.json({ 
             NUC_BASE_IP: NUC_BASE_IP, 
-            NUC_VISION_IP: NUC_VISION_IP
+            NUC_VISION_IP: NUC_VISION_IP,
+            AlterEgoVersion: robotVersion
         });
     });
     

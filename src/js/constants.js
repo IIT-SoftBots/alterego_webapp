@@ -1,5 +1,6 @@
 // ROS related commands
 // Use a placeholder value that will be updated at runtime
+export let AlterEgoVersion = 2;
 export let NUC_BASE_IP = '192.168.88.110';  
 export let NUC_VISION_IP = '192.168.88.111';  
 export let ROS_MASTER_URI = `export ROS_MASTER_URI=http://${NUC_BASE_IP}:11311`;
@@ -29,7 +30,7 @@ export let ROS_COMMANDS = {
     CLEAR_LOG: 'truncate -s 0 ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/alterego_robot/config/SystemCheck.txt'
 };
 
-// Function to update the IP address
+// Function to update the IP address called in main.js
 export async function initializeConfig() {
     try {
         const response = await fetch('/api/config');
@@ -37,6 +38,11 @@ export async function initializeConfig() {
             const config = await response.json();
             NUC_BASE_IP = config.NUC_BASE_IP;
             NUC_VISION_IP = config.NUC_VISION_IP || NUC_VISION_IP;
+            const oldVersion = AlterEgoVersion;
+            AlterEgoVersion = config.AlterEgoVersion || AlterEgoVersion;
+            if (oldVersion !== AlterEgoVersion) {
+                console.log(`AlterEgoVersion updated from ${oldVersion} to ${AlterEgoVersion}`);
+            }
             
             // Update derived values
             ROS_MASTER_URI = `export ROS_MASTER_URI=http://${NUC_BASE_IP}:11311`;
@@ -49,6 +55,8 @@ export async function initializeConfig() {
             ROS_COMMANDS.SETUP = ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash';
             ROS_COMMANDS.SETUP_LOCAL = ROS_MASTER_URI + ' && ' + ROS_IP_LOCAL + ' && ' + ROS_HOSTNAME_LOCAL + ' &&  source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash';
             
+            // Aggiorna i comandi di lancio DOPO aver aggiornato AlterEgoVersion
+            updateLaunchCommands();            
             console.log(`Config initialized with NUC_BASE_IP: ${NUC_BASE_IP}, NUC_VISION_IP: ${NUC_VISION_IP}`);
         }
     } catch (error) {
@@ -71,77 +79,83 @@ export const STATE = {
     POWER_OFF_NUCS:             7
 };
 
-// Launch commands for different ROS nodes
-export const LAUNCH_COMMANDS = {
-
+// Launch commands for different ROS nodes - inizialmente vuoti
+export let LAUNCH_COMMANDS = {
     // Core Nodes
     ROSCORE: 'roscore',
     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
-    IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=2',
-    BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2',
-    BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2 standalone:=true',
-    DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2',
-    WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
-    
+};
+
+// Function to update all launch commands with the current AlterEgoVersion
+export function updateLaunchCommands() {
+    // Core Nodes
+    LAUNCH_COMMANDS.IMU = `roslaunch alterego_robot imu.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    LAUNCH_COMMANDS.BATTERY = `roslaunch alterego_robot battery_status.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    LAUNCH_COMMANDS.BATTERY_STANDALONE = `roslaunch alterego_robot battery_status.launch AlterEgoVersion:=${AlterEgoVersion} standalone:=true`;
+    LAUNCH_COMMANDS.DOCKING = `roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    LAUNCH_COMMANDS.WHEELS = `roslaunch alterego_robot wheels.launch AlterEgoVersion:=${AlterEgoVersion}`;
+
     // Body Movement Nodes
-    PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=2',    
-    BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2',
-    BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2',
+    LAUNCH_COMMANDS.PILOT = `roslaunch alterego_robot pilot.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    LAUNCH_COMMANDS.BODY_ACTIVATION = `roslaunch alterego_robot body_activation.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    LAUNCH_COMMANDS.BODY_MOVEMENT = `roslaunch alterego_robot body_movement.launch AlterEgoVersion:=${AlterEgoVersion}`;
     
     // Additional Nodes
-    FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=2',
-    FACE_RECOGNITION: 'roslaunch alterego_face_recognition face_recognition.launch',
-    FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
-    STT: 'roslaunch alterego_conversation speech2text.launch 2>/dev/null',
-    TTS: 'roslaunch alterego_text2speech text2speech.launch',
-    KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
-    NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
-    SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
-
-    // Play ROSBAGS
-    BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
+    LAUNCH_COMMANDS.FACE_EXPRESSION = `roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=${AlterEgoVersion}`;
+    
+    // Questi comandi non hanno bisogno del parametro AlterEgoVersion
+    LAUNCH_COMMANDS.FACE_RECOGNITION = 'roslaunch alterego_face_recognition face_recognition.launch';
+    LAUNCH_COMMANDS.FACE_TRACKING = 'roslaunch alterego_face_tracking face_tracking.launch';
+    LAUNCH_COMMANDS.STT = 'roslaunch alterego_conversation speech2text.launch 2>/dev/null';
+    LAUNCH_COMMANDS.TTS = 'roslaunch alterego_text2speech text2speech.launch';
+    LAUNCH_COMMANDS.KILL_SPEECH = './home/alterego-vision/kill_speech.sh';
+    LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
+    LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_adjust_docking say_tired.launch';
+    LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
     
     // Additional constants
-    TARGET_LOC: 'Mostra1',
-    DOCK_STATION: 'DockStation',    
-    ADJUST_DOCKING: '/adjust_docking',
-    STOP_BREATH: '/rosbag_play',
+    LAUNCH_COMMANDS.TARGET_LOC = 'Mostra1';
+    LAUNCH_COMMANDS.DOCK_STATION = 'DockStation';    
+    LAUNCH_COMMANDS.ADJUST_DOCKING = '/adjust_docking';
+    LAUNCH_COMMANDS.STOP_BREATH = '/rosbag_play';
 
     // Stop Core Nodes
-    STOP_BATTERY_STANDALONE: {
-        BATTERY:        '/battery/battery_status',
-        QB_INTERFACE:   '/wheels/qb_interface_node'
-    },
-
+    LAUNCH_COMMANDS.STOP_BATTERY_STANDALONE = {
+        BATTERY: '/battery/battery_status',
+        QB_INTERFACE: '/wheels/qb_interface_node'
+    };
+    
     // Stop Body Movement Nodes
-    STOP_PILOT: {
+    LAUNCH_COMMANDS.STOP_PILOT = {
         R_CTRL: '/right/arms_compliant_control_node',
         L_CTRL: '/left/arms_compliant_control_node',
-        INBOUND:'/inbound_data',
+        INBOUND: '/inbound_data',
         SOCKET: '/socket'
-    },
-    STOP_BODY_ACTIVATION: {
-        R_ARM:  '/right/qb_manager',
-        L_ARM:  '/left/qb_manager',        
-    },
-    STOP_BODY_MOVEMENT: {
-        R_ARM:  '/right/arm_inv_dyn',
-        L_ARM:  '/left/arm_inv_dyn',
-        HEAD:   '/head/head_inv_kin',
+    };
+    
+    LAUNCH_COMMANDS.STOP_BODY_ACTIVATION = {
+        R_ARM: '/right/qb_manager',
+        L_ARM: '/left/qb_manager',        
+    };
+    
+    LAUNCH_COMMANDS.STOP_BODY_MOVEMENT = {
+        R_ARM: '/right/arm_inv_dyn',
+        L_ARM: '/left/arm_inv_dyn',
+        HEAD: '/head/head_inv_kin',
         R_MAIN: '/right/arm_inv_kin_main',
         L_MAIN: '/left/arm_inv_kin_main',
-        PITCH:  '/pitch_correction'
-    },
-
-    // Stop Additional Nodes
-    STOP_TTS:               '/text2speech',
-    STOP_STT:               '/speech2text',
-    STOP_FACE_EXPRESSION:   '/face_expressions',
-    STOP_FACE_RECOGNITION:  '/face_recognition',
-    STOP_FACE_TRACKING:     '/face_tracker',
+        PITCH: '/pitch_correction'
+    };
     
-    // Stop Naviagation Nodes
-    STOP_NAVIGATION: {
+    // Stop Additional Nodes
+    LAUNCH_COMMANDS.STOP_TTS = '/text2speech';
+    LAUNCH_COMMANDS.STOP_STT = '/speech2text';
+    LAUNCH_COMMANDS.STOP_FACE_EXPRESSION = '/face_expressions';
+    LAUNCH_COMMANDS.STOP_FACE_RECOGNITION = '/face_recognition';
+    LAUNCH_COMMANDS.STOP_FACE_TRACKING = '/face_tracker';
+    
+    // Stop Navigation Nodes
+    LAUNCH_COMMANDS.STOP_NAVIGATION = {
         AMCL: '/amcl',
         LIDAR: '/lidar',
         MOVE_BASE: '/move_base',
@@ -149,9 +163,102 @@ export const LAUNCH_COMMANDS = {
         MAP_SERVER_OBSTACLE: '/map_server_obstacle',
         NAVIGATION: '/navigation',
         VIS_ROBOT: '/visualize_robot'
-    }
+    };
+    console.log('====== LAUNCH COMMANDS ======');
+    console.log('Core Nodes:');
+    console.log(`- IMU: ${LAUNCH_COMMANDS.IMU}`);
+    console.log(`- BATTERY: ${LAUNCH_COMMANDS.BATTERY}`);
+    console.log(`- BATTERY_STANDALONE: ${LAUNCH_COMMANDS.BATTERY_STANDALONE}`);
+    console.log(`- DOCKING: ${LAUNCH_COMMANDS.DOCKING}`);
+    console.log(`- WHEELS: ${LAUNCH_COMMANDS.WHEELS}`);
+    console.log('Body Movement:');
+    console.log(`- PILOT: ${LAUNCH_COMMANDS.PILOT}`);
+    console.log(`- BODY_ACTIVATION: ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+    console.log(`- BODY_MOVEMENT: ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+    console.log('===========================');
+}
 
-};
+// Launch commands for different ROS nodes
+// export const LAUNCH_COMMANDS = {
+
+//     // Core Nodes
+//     ROSCORE: 'roscore',
+//     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
+//     IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=2',
+//     BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2',
+//     BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2 standalone:=true',
+//     DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2',
+//     WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
+    
+//     // Body Movement Nodes
+//     PILOT: 'roslaunch alterego_robot pilot.launch AlterEgoVersion:=2',    
+//     BODY_ACTIVATION: 'roslaunch alterego_robot body_activation.launch AlterEgoVersion:=2',
+//     BODY_MOVEMENT: 'roslaunch alterego_robot body_movement.launch AlterEgoVersion:=2',
+    
+//     // Additional Nodes
+//     FACE_EXPRESSION: 'roslaunch alterego_robot face_expressions.launch AlterEgoVersion:=2',
+//     FACE_RECOGNITION: 'roslaunch alterego_face_recognition face_recognition.launch',
+//     FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
+//     STT: 'roslaunch alterego_conversation speech2text.launch 2>/dev/null',
+//     TTS: 'roslaunch alterego_text2speech text2speech.launch',
+//     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
+//     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
+//     SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
+
+//     // Play ROSBAGS
+//     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
+    
+//     // Additional constants
+//     TARGET_LOC: 'Mostra1',
+//     DOCK_STATION: 'DockStation',    
+//     ADJUST_DOCKING: '/adjust_docking',
+//     STOP_BREATH: '/rosbag_play',
+
+//     // Stop Core Nodes
+//     STOP_BATTERY_STANDALONE: {
+//         BATTERY:        '/battery/battery_status',
+//         QB_INTERFACE:   '/wheels/qb_interface_node'
+//     },
+
+//     // Stop Body Movement Nodes
+//     STOP_PILOT: {
+//         R_CTRL: '/right/arms_compliant_control_node',
+//         L_CTRL: '/left/arms_compliant_control_node',
+//         INBOUND:'/inbound_data',
+//         SOCKET: '/socket'
+//     },
+//     STOP_BODY_ACTIVATION: {
+//         R_ARM:  '/right/qb_manager',
+//         L_ARM:  '/left/qb_manager',        
+//     },
+//     STOP_BODY_MOVEMENT: {
+//         R_ARM:  '/right/arm_inv_dyn',
+//         L_ARM:  '/left/arm_inv_dyn',
+//         HEAD:   '/head/head_inv_kin',
+//         R_MAIN: '/right/arm_inv_kin_main',
+//         L_MAIN: '/left/arm_inv_kin_main',
+//         PITCH:  '/pitch_correction'
+//     },
+
+//     // Stop Additional Nodes
+//     STOP_TTS:               '/text2speech',
+//     STOP_STT:               '/speech2text',
+//     STOP_FACE_EXPRESSION:   '/face_expressions',
+//     STOP_FACE_RECOGNITION:  '/face_recognition',
+//     STOP_FACE_TRACKING:     '/face_tracker',
+    
+//     // Stop Naviagation Nodes
+//     STOP_NAVIGATION: {
+//         AMCL: '/amcl',
+//         LIDAR: '/lidar',
+//         MOVE_BASE: '/move_base',
+//         MAP_SERVER: '/map_server',
+//         MAP_SERVER_OBSTACLE: '/map_server_obstacle',
+//         NAVIGATION: '/navigation',
+//         VIS_ROBOT: '/visualize_robot'
+//     }
+
+// };
 
 // UI States
 export const UI_STATES = {
@@ -171,7 +278,10 @@ export const UI_STATES = {
         color: '#22c55e',
         text: 'Status: Running'
     }
-};    
+};   
+
+// Initialize launch commands with default version
+updateLaunchCommands();
 
 // UI Strings, add localization, further use
 // export const TEXT_EN = {
