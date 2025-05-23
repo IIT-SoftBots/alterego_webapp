@@ -29,11 +29,15 @@ app.use(express.json());
 app.use(express.static(__dirname));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
+// Configure timeouts
+app.keepAliveTimeout = 35000; // 35 seconds
+app.headersTimeout = 40000; // 40 seconds
+
 // Get host IP and derive NUC_BASE_IP using hostname -I
 // Fixed function with proper Promise handling
-function getNucIPs() {
+function getMyIP() {
     return new Promise((resolve, reject) => {
-        exec('hostname -I', (error, stdout, stderr) => {
+        exec('hostname -I', async (error, stdout, stderr) => {
             if (error) {
                 console.error('Error getting IPs:', error);
                 reject(error);
@@ -42,17 +46,34 @@ function getNucIPs() {
             
             // Get first IP address from hostname -I output
             const hostIP = stdout.trim().split(' ')[0];
-            
-            // Only remove the last digit from the last octet
-            const ipParts = hostIP.split('.');
-            const lastOctet = ipParts[3];
-            ipParts[3] = lastOctet.slice(0, -1) + '0';
-            
-            const nucIP = ipParts.join('.');
-            
-            console.log(`\nCurrent UserIP: ${hostIP} \nRemote UserIP: ${nucIP}\n`);
-            resolve({ base: nucIP, vision: hostIP });
+            if (hostIP === '127.0.0.1') {
+                console.log(`Only localhost found (127.0.0.1), try again`);
+                resolve(null);          
+            }
+            resolve({ hostIP });
         });
+    });
+}
+
+function getNucIPs() {
+    return new Promise(async (resolve, reject) => {
+        
+        let ip = await getMyIP();        
+        while (ip == null){
+            await new Promise(r => setTimeout(r, 2000)); 
+            ip = await getMyIP();
+        }
+
+        // Only remove the last digit from the last octet
+        const ipParts = ip.hostIP.split('.');
+        const lastOctet = ipParts[3];
+        ipParts[3] = lastOctet.slice(0, -1) + '0';
+        
+        const nucIP = ipParts.join('.');
+        
+        console.log(`\nCurrent UserIP: ${ip.hostIP} \nRemote UserIP: ${nucIP}\n`);
+        resolve({ base: nucIP, vision: ip.hostIP });
+        
     });
 }
 // Use the async function properly
@@ -104,7 +125,7 @@ getNucIPs().then(async ips => {
 });
 
 // Move server startup to a function
-function startServer() {
+function startServer() {   
     const server = app.listen(port, '0.0.0.0', () => {
         console.log(`Server running at http://0.0.0.0:${port}`);
     });
@@ -221,6 +242,8 @@ app.post('/execute', async (req, res) => {
         username: remoteUsername,
         privateKey: fs.readFileSync(`/home/${currentUsername}/.ssh/id_rsa`)
     };
+    let output = '';
+    let errorOutput = '';
 
     try {
         client.on('ready', () => {
@@ -231,9 +254,6 @@ app.post('/execute', async (req, res) => {
                     client.end(); // Close the connection
                     return;
                 }
-
-                let output = '';
-                let errorOutput = '';
 
                 stream.on('data', (data) => {
                     output += data.toString();
@@ -260,7 +280,12 @@ app.post('/execute', async (req, res) => {
 
         client.on('error', (err) => {
             console.error('SSH connection error:', err);
-            res.status(500).json({ success: false, error: err.message });
+            if (err.code === 'ECONNRESET') {
+                console.log('ECONNRESET noticed...');  // Allow to move on turn off other NUC
+                res.json({ success: true, output });
+            } else {
+                res.status(500).json({ success: false, error: err.message });
+            }            
         });
 
         client.connect(connectionParams); // Connect the client

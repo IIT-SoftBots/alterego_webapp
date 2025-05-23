@@ -1,5 +1,5 @@
-import { showSyncedPopup } from '../api.js';
-import { batteryMonitor } from '../batterymonitor.js';
+import { sendCommand, showSyncedPopup, stopBatteryCheck } from '../api.js';
+import { LAUNCH_COMMANDS } from '../constants.js';
 import { openPopup } from '../utils.js';
 
 export function clickMonitorClose(monitor, unlockMonitor){
@@ -40,20 +40,26 @@ export class ClickMonitor {
         }
     }
 
-    executeCloseFunction() {
+    async executeCloseFunction() {
         // Implementa qui la logica per chiudere l'applicazione
         console.log('Closing Application...');
-        
+               
+        // Stop Battery Monitor
+        sendCommand(`${LAUNCH_COMMANDS.BATTERY_MONITOR.STOP}`);
+        await new Promise(r => setTimeout(r, 1000));
+        console.log("Stop Battery Monitoring");
+
+        // Stop checking battery
+        stopBatteryCheck();        
+
         this.websocket.send(JSON.stringify({ type: 'closeApp' })); // Invia un messaggio di chiusura al server
-        
+    
         // Esempio per browser:
         //window.close();
         
         // Rimuovi l'event listener
         this.imageElement.removeEventListener('click', this.handleClick.bind(this));
 
-        // Spegni battery monitor
-        batteryMonitor.clearIntervalTimer();
     }
 }
 

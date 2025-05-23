@@ -23,18 +23,61 @@ export function sendCommand(command) {
 /**
  * Executes a generic command on the local computer through the server
  * @param {string} command - The command to execute
- * @returns {Promise<void>}
+ * @returns {Promise<string>}
  */
-export function sendLocalCommand(command) {
-    fetch('/execute-local', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ command }),
-    })
-    .then(() => console.log(`Local command sent: ${command}`))
-    .catch(error => console.error('Error sending local command:', error));
+export async function sendLocalCommand(command) {
+    try {
+        const response = await fetch('/execute-local', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ command }),
+        });
+        if (!response.ok) {
+            throw new Error(`Error in command execution: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(`Local command sent: ${command}`);
+        return data;
+    } catch (error) {
+        return console.error('Error sending local command:', error);
+    }
+}
+  
+
+/**
+ * Retrieves the battery info from script
+ * @returns {Promise<output|null>} Current battery status
+ * @throws {Error} If battery info cannot be retrieved
+ */
+export async function getBatteryStatus() {
+    try {
+        const catCommand = `cat ` + ROS_CATKIN_WS + ROS_SRC_FOLDER + `/utils/alterego_battery_status/BatteryStatus.txt`;
+        const response = await fetch('/grep-command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                command: catCommand
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !data.output) {
+            throw new Error(`No data read from battery status file`);
+            //return null;
+        }
+        
+        return data.output;
+    } catch (error) {
+        console.error('Error getting battery status:', error);
+        throw error;
+    }
 }
 
 /**
@@ -212,15 +255,15 @@ export async function initializeIMU(ws, robotName) {
  */
 export async function startBatteryCheck(robotName) {
     const MAX_NULL_READINGS = 3;
-    const POLLING_INTERVAL = 5000;
+    const POLLING_INTERVAL = 2000;
     var topicDataOutput;
             
     // Start checking stability
     const bInterval = setInterval(async () => {
         try {
 
-            topicDataOutput = await getTopicValue(`/${robotName}/battery/status`);      // Last at max. 3 retries x 500 ms = 1500 ms      
-
+            topicDataOutput = await getBatteryStatus();      // Last at max. 3 retries 
+            
             if (topicDataOutput == null) {
                 batteryMonitor.updateErrorCounter();
                 console.warn(`Null reading battery check #${batteryMonitor.getErrorCounter()}`);
@@ -234,40 +277,49 @@ export async function startBatteryCheck(robotName) {
                 // Extract topic valueS
                 const matchPA = topicDataOutput.match(/power_alert:\s*(True|False)/i);
                 const matchIC = topicDataOutput.match(/is_charging:\s*(True|False)/i);
+                const matchID = topicDataOutput.match(/is_docked:\s*(True|False)/i);
                 const matchNC = topicDataOutput.match(/need_for_charge:\s*(True|False)/i);
                 const matchBL = topicDataOutput.match(/battery_level:\s*([-]?\d*\.?\d*)/);
-                if (!matchPA || !matchIC || !matchNC || !matchBL) {
+                if (!matchPA || !matchIC || !matchID || !matchNC || !matchBL) {
                     console.warn('Could not parse battery_level value from:', topicDataOutput);
                     return null;
                 }                            
                 
                 const powerAlert = matchPA ? (matchPA[1].toLowerCase() === 'true') : false;
                 const isCharging = matchIC ? (matchIC[1].toLowerCase() === 'true') : false;
+                const isDocked = matchID ? (matchID[1].toLowerCase() === 'true') : false;
                 const needCharge = matchNC ? (matchNC[1].toLowerCase() === 'true') : false;
                 const batteryLevel = parseFloat(matchBL[1]);
                     
-                //console.log('Battery Status:', batteryLevel, 'PA:', powerAlert, 'IC:', isCharging, 'NC:', needCharge);
+                //console.log('Battery Status:', batteryLevel, 'PA:', powerAlert, 'IC:', isCharging, 'ID:', isDocked, 'NC:', needCharge);
 
                 // Update Monitor state
                 batteryMonitor.resetErrorCounter();                              
-                batteryMonitor.updateState(powerAlert, isCharging, needCharge, batteryLevel);
+                batteryMonitor.updateState(powerAlert, isCharging, isDocked, needCharge, batteryLevel);
 
                 // State changes
-                updateBatteryGraphics(isCharging, batteryLevel);
+                updateBatteryGraphics(powerAlert, isCharging, isDocked, batteryLevel);
 
                 // Once a first message has arrived set monitor timer
                 if (!batteryMonitor.timerIsSet()){
                     batteryMonitor.updateInterval(bInterval);
+                }
+
+                if (batteryMonitor.checkLastBatteryLevel() && batteryLevel != 0 && batteryLevel != 100){
+                    // Reset battery monitor script if it is stucked
+                    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.RESTART}`);
+                    await new Promise(r => setTimeout(r, 1000));
+                    console.log("Restart Battery Monitoring");
                 }
                 
             }
             
         } catch (error) {
             if (topicDataOutput != null){
-                console.error('Error in topic reading:', error);
+                console.error('Error in file reading:', error);
             }
             if (batteryMonitor.getErrorCounter() >= MAX_NULL_READINGS) {
-                console.error('Too many failed topic readings');
+                console.error('Too many failed file readings');
                 batteryMonitor.resetErrorCounter();
                 batteryMonitor.clearIntervalTimer();
                 clearInterval(bInterval);                    
@@ -476,19 +528,19 @@ export async function initializeSystem(ws, robotName) {
 
         const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
             title: 'Activating Wheels',
-            text: 'Pay attention!! Robot is activating balancing. RAISE the ROBOT and then Click OK to continue.', // Modified text
+            text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
             icon: 'warning',
-            // timer: 5000, // Removed timer
-            // timerProgressBar: true, // Removed timer progress bar
-            showConfirmButton: true, // Show confirm button
-            confirmButtonText: 'OK', // Set confirm button text
-            allowOutsideClick: false, // Prevent closing by clicking outside
-            allowEscapeKey: false, // Prevent closing with ESC key
-            showCancelButton: false // Ensure no cancel button is shown
+            timer: 5000, // Removed timer
+            timerProgressBar: true, // Removed timer progress bar
+            showConfirmButton: false, //true, // Show confirm button
+            // confirmButtonText: 'OK', // Set confirm button text
+            // allowOutsideClick: false, // Prevent closing by clicking outside
+            // allowEscapeKey: false, // Prevent closing with ESC key
+            // showCancelButton: false // Ensure no cancel button is shown
         });
 
         // Check if the user confirmed
-        if (!confirmWheels) {
+        /*if (!confirmWheels) {
             console.log('Wheel activation cancelled by user.');
             // Optionally, show another popup or handle cancellation
             await showSyncedPopup(ws, {
@@ -499,11 +551,11 @@ export async function initializeSystem(ws, robotName) {
                 showConfirmButton: false
             });
             return false; // Stop the initialization if cancelled
-        }
+        }*/
 
         // Start wheels control
-        // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
-        // await new Promise(r => setTimeout(r, 2000));
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+        await new Promise(r => setTimeout(r, 2000));
         
         // Activate arm motors
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);

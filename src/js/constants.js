@@ -64,8 +64,6 @@ export async function initializeConfig() {
     }
 }
 
-export const SOUND_PATH_LOCAL = '~/AlterEGO_v2/EGO_GUI/config/low_battery.mp3'
-
 // Workflow Routines
 export const STATE = {
     RESTART_AUTO:              -1,
@@ -84,14 +82,17 @@ export let LAUNCH_COMMANDS = {
     // Core Nodes
     ROSCORE: 'roscore',
     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
+    BATTERY_MONITOR: {
+        START:      'cd ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/utils/alterego_battery_status/ && ./battery_monitor.sh start',
+        STOP:       'cd ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/utils/alterego_battery_status/ && ./battery_monitor.sh stop',
+        RESTART:    'cd ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/utils/alterego_battery_status/ && ./battery_monitor.sh restart',
+    }
 };
 
 // Function to update all launch commands with the current AlterEgoVersion
 export function updateLaunchCommands() {
     // Core Nodes
     LAUNCH_COMMANDS.IMU = `roslaunch alterego_robot imu.launch AlterEgoVersion:=${AlterEgoVersion}`;
-    LAUNCH_COMMANDS.BATTERY = `roslaunch alterego_robot battery_status.launch AlterEgoVersion:=${AlterEgoVersion}`;
-    LAUNCH_COMMANDS.BATTERY_STANDALONE = `roslaunch alterego_robot battery_status.launch AlterEgoVersion:=${AlterEgoVersion} standalone:=true`;
     LAUNCH_COMMANDS.DOCKING = `roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=${AlterEgoVersion}`;
     LAUNCH_COMMANDS.WHEELS = `roslaunch alterego_robot wheels.launch AlterEgoVersion:=${AlterEgoVersion}`;
 
@@ -111,6 +112,7 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.KILL_SPEECH = './home/alterego-vision/kill_speech.sh';
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_adjust_docking say_tired.launch';
+    LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
     LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
     
     // Additional constants
@@ -118,12 +120,6 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.DOCK_STATION = 'DockStation';    
     LAUNCH_COMMANDS.ADJUST_DOCKING = '/adjust_docking';
     LAUNCH_COMMANDS.STOP_BREATH = '/rosbag_play';
-
-    // Stop Core Nodes
-    LAUNCH_COMMANDS.STOP_BATTERY_STANDALONE = {
-        BATTERY: '/battery/battery_status',
-        QB_INTERFACE: '/wheels/qb_interface_node'
-    };
     
     // Stop Body Movement Nodes
     LAUNCH_COMMANDS.STOP_PILOT = {
@@ -167,8 +163,6 @@ export function updateLaunchCommands() {
     console.log('====== LAUNCH COMMANDS ======');
     console.log('Core Nodes:');
     console.log(`- IMU: ${LAUNCH_COMMANDS.IMU}`);
-    console.log(`- BATTERY: ${LAUNCH_COMMANDS.BATTERY}`);
-    console.log(`- BATTERY_STANDALONE: ${LAUNCH_COMMANDS.BATTERY_STANDALONE}`);
     console.log(`- DOCKING: ${LAUNCH_COMMANDS.DOCKING}`);
     console.log(`- WHEELS: ${LAUNCH_COMMANDS.WHEELS}`);
     console.log('Body Movement:');
@@ -185,8 +179,6 @@ export function updateLaunchCommands() {
 //     ROSCORE: 'roscore',
 //     USB_DETECTOR: 'rosrun alterego_robot usb_ports_detector.py',
 //     IMU: 'roslaunch alterego_robot imu.launch AlterEgoVersion:=2',
-//     BATTERY: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2',
-//     BATTERY_STANDALONE: 'roslaunch alterego_robot battery_status.launch AlterEgoVersion:=2 standalone:=true',
 //     DOCKING: 'roslaunch alterego_docking_controller docking.launch AlterEgoVersion:=2',
 //     WHEELS: 'roslaunch alterego_robot wheels.launch AlterEgoVersion:=2',
     
@@ -204,6 +196,7 @@ export function updateLaunchCommands() {
 //     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
 //     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
 //     SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
+//     SAY_MOVE_OVER: 'roslaunch alterego_adjust_docking say_move_over.launch',
 
 //     // Play ROSBAGS
 //     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',
@@ -213,12 +206,6 @@ export function updateLaunchCommands() {
 //     DOCK_STATION: 'DockStation',    
 //     ADJUST_DOCKING: '/adjust_docking',
 //     STOP_BREATH: '/rosbag_play',
-
-//     // Stop Core Nodes
-//     STOP_BATTERY_STANDALONE: {
-//         BATTERY:        '/battery/battery_status',
-//         QB_INTERFACE:   '/wheels/qb_interface_node'
-//     },
 
 //     // Stop Body Movement Nodes
 //     STOP_PILOT: {
@@ -277,6 +264,14 @@ export const UI_STATES = {
     SYSTEM_RUNNING: {
         color: '#22c55e',
         text: 'Status: Running'
+    },
+    BATTERY_ALERT: {
+        color: '#eab308',
+        text: 'Battery: '
+    },
+    BATTERY_OK: {
+        color: '#22c55e',
+        text: 'Battery: '
     }
 };   
 

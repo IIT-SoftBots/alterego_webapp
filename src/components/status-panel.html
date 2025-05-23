@@ -1,15 +1,20 @@
 <div class="status-panel">
-    <h3 style="margin-top: 0;">System Status</h3>
-    <div class="status-item">
-        <div id="powerStatus" class="status-indicator" style="background-color: #ef4444;"></div>
-        <span>Power: Off</span>
+    <div class="status-content">
+        <h3 style="margin-top: 0;">System Status</h3>
+        <div class="status-item">
+            <div id="powerStatus" class="status-indicator" style="background-color: #ef4444;"></div>
+            <span>Power: Off</span>
+        </div>
+        <div class="status-item">
+            <div id="batteryStatus" class="status-indicator" style="background-color: #22c55e;"></div>
+            <span id="batteryIcon">Battery: N.A.</span>
+        </div>
+        <div class="status-item">
+            <div id="systemStatus" class="status-indicator" style="background-color: #eab308;"></div>
+            <span>Status: Ready</span>
+        </div>
     </div>
-    <div class="status-item">
-        <div id="batteryStatus" class="status-indicator" style="background-color: #22c55e;"></div>
-        <span id="batteryIcon">Battery: N.A.</span>
-    </div>
-    <div class="status-item">
-        <div id="systemStatus" class="status-indicator" style="background-color: #eab308;"></div>
-        <span>Status: Ready</span>
+    <div id="dockingStation" class="icon-container">
+        <span id="dockingIcon"></span>
     </div>
 </div>

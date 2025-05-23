@@ -1,3 +1,4 @@
+import { sendLocalCommand } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { STATE, UI_STATES } from './constants.js';
 
@@ -127,31 +128,46 @@ export async function loadComponent(elementId, componentPath) {
     }
 }
 
-export function updateBatteryGraphics(isCharging, batteryLevel){
+export function updateBatteryGraphics(powerAlert, isCharging, isDocked, batteryLevel){
     const batteryIcon = document.getElementById('batteryIcon');
+    const batteryStatus = document.getElementById('batteryStatus');
+    const dockingStation = document.getElementById('dockingStation');
+    const dockingIcon = document.getElementById('dockingIcon');
 
-    batteryIcon.innerHTML = "Battery ";
-    
-    if (batteryLevel > 75){          //75-100%
-        batteryIcon.innerHTML += "<i class=\"fa fa-battery-full\"></i>";
-    }
-    else {
-        if (batteryLevel > 50){      //50-75%
-            batteryIcon.innerHTML += "<i class=\"fa fa-battery-three-quarters\"></i>";
+    batteryIcon.innerHTML = "Battery ";        
+
+    if (powerAlert) {
+        batteryStatus.style.backgroundColor = UI_STATES.BATTERY_ALERT.color;
+        batteryIcon.innerHTML += "<span style=\"color:rgb(250, 155, 30)\"><i class=\"fa fa-triangle-exclamation blink\"></i></span>";
+        dockingIcon.innerHTML = "<span style=\"color:rgb(250, 155, 30)\"><i class=\"fas fa-charging-station blink\"></i></span>";
+    } else {
+        batteryStatus.style.backgroundColor = UI_STATES.BATTERY_OK.color;
+        dockingIcon.innerHTML = "<i class=\"fas fa-charging-station\"></i>";
+
+        if (batteryLevel > 75){          //75-100%
+            batteryIcon.innerHTML += "<i class=\"fa fa-battery-full\"></i>";
         }
         else {
-            if (batteryLevel > 25){  //25-50%
-                batteryIcon.innerHTML += "<i class=\"fa fa-battery-half\"></i>";
+            if (batteryLevel > 50){      //50-75%
+                batteryIcon.innerHTML += "<i class=\"fa fa-battery-three-quarters\"></i>";
             }
-            else {                  //0-25%
-                batteryIcon.innerHTML += "<i class=\"fa fa-battery-quarter\"></i>";
-            }
-        }   
+            else {
+                if (batteryLevel > 25){  //25-50%
+                    batteryIcon.innerHTML += "<i class=\"fa fa-battery-half\"></i>";
+                }
+                else {                  //0-25%
+                    batteryIcon.innerHTML += "<i class=\"fa fa-battery-quarter\"></i>";
+                }
+            }   
+        }
     }
-    
+
     if (isCharging){
-        batteryIcon.innerHTML += " <i class=\"fa fa-charging-station\"></i>";
+        batteryIcon.innerHTML += " <i class=\"fa fa-bolt blink\"></i>";
     }    
+
+    dockingStation.style.display = (isDocked == true)?'block':'none';
+
 }
 
 export function openPopup() {
@@ -159,10 +175,46 @@ export function openPopup() {
     document.getElementById('popup').style.display = 'block';
 }
 
+function handleVolumeChange (e) {
+    const volume = e.target.value;
+    
+    // Aggiorna il volume del sistema
+    setVolumeLevel(volume);
+}
+
+// Funzione per ottenere il volume corrente
+async function getInitialVolume() {
+    try {
+        const command = "pactl list sinks | grep \"Volume:\" | head -n 1";
+        const volumeString = await sendLocalCommand(command);  
+        return parseInt(volumeString.output.split('%')[0].split('/').pop().trim());
+    } catch (error){
+        return 50;      //Default in case of error
+    }
+}
+
+function setVolumeLevel(level){
+    // Utilizzo di pactl per controllare il volume
+    sendLocalCommand(`pactl set-sink-volume @DEFAULT_SINK@ ${level}%`);
+}
+
+export async function setVolume() {
+    document.getElementById('popupOverlay').style.display = 'block';
+    document.getElementById('popupVolume').style.display = 'block';
+
+    const volumeSlider = document.getElementById('volumeSlider');
+    volumeSlider.value = await getInitialVolume();
+    volumeSlider.addEventListener('input', handleVolumeChange);
+    setTimeout(() => {
+        closeVolumeMenu();
+    }, 10000);      // Close after 10 seconds
+}
+
 // Funzione per l'azione Settings
 export function settingsAction() {
     // Esempio di azione: mostra un messaggio
     alert('Settings... TODO');
+    
     closeAdminMenu(); // Chiude il popup dopo l'azione
 }
 
@@ -170,6 +222,12 @@ export function settingsAction() {
 export function closeAdminMenu() {
     document.getElementById('popupOverlay').style.display = 'none';
     document.getElementById('popup').style.display = 'none';
+}
+
+export function closeVolumeMenu() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    document.getElementById('popupVolume').style.display = 'none';
+    document.getElementById('volumeSlider').removeEventListener('input', handleVolumeChange);    
 }
 
 export function showLoading(val) {
