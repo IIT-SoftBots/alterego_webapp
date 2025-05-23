@@ -29,7 +29,7 @@ export async function handleMainButtonClick(ws, state, robotName) {
             }));
             return;
         }
-
+        
                                  
 
         if (state.pipelineState == STATE.WORK_MODE ||
@@ -40,12 +40,12 @@ export async function handleMainButtonClick(ws, state, robotName) {
 
             if (state.pipelineState == STATE.WORK_MODE){
                 // Clicked to Pause
-                // pauseProcedures(ws, state, robotName);
+                pauseProcedures(ws, state, robotName);
                 state.isRunning = false;
             }
             else {
                 // Clicked to Play
-                // restartFromPauseProcedures(ws, state, robotName);
+                restartFromPauseProcedures(ws, state, robotName);
                 state.isRunning = true;
             }                    
             
@@ -61,19 +61,19 @@ export async function handleMainButtonClick(ws, state, robotName) {
         if (state.pipelineState == STATE.INIT ||
             state.pipelineState == STATE.DOCKED ||
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
-
-            // // First popup - Global warning
-            // const warnAnsw = await showSyncedPopup(ws, {
-            //     title: 'Start Robot',
-            //     text: "The system will move back and activate the robot now. Are you sure?",
-            //     icon: 'warning',
-            //     showCancelButton: true,
-            //     allowOutsideClick: false,
-            //     allowEscapeKey: false,
-            //     confirmButtonText: 'OK, Activate Robot'
-            // });
             
-            // if (!warnAnsw) return false;
+            // First popup - Global warning
+            const warnAnsw = await showSyncedPopup(ws, {
+                title: 'Start Robot',
+                text: "The system will move back and activate the robot now. Are you sure?",
+                icon: 'warning',
+                showCancelButton: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                confirmButtonText: 'OK, Activate Robot'
+            });
+            
+            if (!warnAnsw) return false;
 
             if (state.pipelineState == STATE.DOCKED) {  // In this case, the robot is still active
                 endChargeProcedures(ws, state);

@@ -97,6 +97,23 @@ body {
 .settings-button { background-color: #656965; }
 .close-button { background-color: #f44336; }
 
+.volume-overlay {
+    border-radius: 10px;
+    cursor: pointer;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    font-size: 24pt;
+    background: rgba(0, 0, 0, 0.0);
+    margin-right: 50pt;
+    margin-top: 10pt;
+    color: #4f6e90;
+    text-decoration: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+}
+
 .popup-overlay {
     display: none;
     position: fixed;
@@ -127,6 +144,29 @@ body {
     gap: 1.5rem;           /* Ridotto gap */
     aspect-ratio: 1;
     margin: 2rem 0 auto;
+    box-sizing: border-box;
+}
+
+.volume-slider {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.slider-container {
+    text-align: center;
+}
+
+.popup-volume {
+    display: none;
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);    
+    z-index: 1001;    
     box-sizing: border-box;
 }
 
@@ -168,20 +208,52 @@ body {
     max-width: 800px; /* Usa lo stesso max-width della griglia */
     margin: 2rem auto 0;
     box-sizing: border-box;
+    display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: #f9fafb;
+            border-radius: 8px;
+            position: relative;
+            min-height: 100px;
 }
 
+.status-content {
+    flex-grow: 1;
+}
 
 .status-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+    min-height: 30px;
+    font-size: 16pt;
 }
 
 .status-indicator {
     width: 12px;
     height: 12px;
     border-radius: 50%;
+}
+
+.icon-container {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 56px;    
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    25% { opacity: 0.75; }
+    50% { opacity: 0.5; }
+    75% { opacity: 0.25; }
+    100% { opacity: 0; }
+}
+
+.blink {
+    animation: blink 1s linear infinite;
 }
 
 /* Loading States */

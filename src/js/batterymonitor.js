@@ -13,6 +13,7 @@ export class BatteryMonitor {
         
         this.powerAlert = false;
         this.isCharging = false;
+        this.isDocked = false;
         this.needCharge = false;
         this.batteryLevel = 0;
 
@@ -23,6 +24,8 @@ export class BatteryMonitor {
         this.firstNeedCharge = false;
         this.shouldAutoRestart = false;
         this.errorCounter = 0;
+        this.lastBatteryLevel = 0;
+        this.sameBatteryLevelCounter = 0;
 
         this.batteryInterval = [];
         this.isTimerSet = false;
@@ -92,6 +95,10 @@ export class BatteryMonitor {
         return this.isCharging;
     }
 
+    getIsDocked() {
+        return this.isDocked;
+    }
+
     clearOldPowerAlertTrigger(){
         this.oldPowerAlertTrigger = [];
         this.isSetOldPowerAlertTrigger = false;
@@ -102,7 +109,7 @@ export class BatteryMonitor {
         this.isSetOldNeedChargeTrigger = false;
     }
 
-    updateState(pA, iC, nC, bL){
+    updateState(pA, iC, iD, nC, bL){
 
         if (!this.isTimerSet){
             // It's first message, update oldPowerAlert
@@ -115,10 +122,29 @@ export class BatteryMonitor {
         // Update with new values
         this.powerAlert = pA;
         this.isCharging = iC;
+        this.isDocked = iD;
         this.needCharge = nC;
+        this.lastBatteryLevel = this.batteryLevel;
         this.batteryLevel = bL;
     }
-    
+
+    checkLastBatteryLevel(){
+        if (this.lastBatteryLevel == this.batteryLevel){
+            this.sameBatteryLevelCounter++;
+        }
+        else {
+            this.sameBatteryLevelCounter = 0;
+        }
+        
+        if (this.sameBatteryLevelCounter >= 10){
+            this.sameBatteryLevelCounter = 0;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     getErrorCounter(){
         return this.errorCounter;
     }

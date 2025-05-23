@@ -4,11 +4,11 @@ import { ClickMonitor, clickMonitorClose, UnlockClickMonitor } from './handlerBu
 import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
-import { updateUI, loadComponent, closeAdminMenu, settingsAction } from './utils.js';
-import { getRobotName, showSyncedPopup } from './api.js';
+import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu } from './utils.js';
+import { getRobotName, pingRemoteComputer, sendCommand, showSyncedPopup, startBatteryCheck } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
-import { STATE , initializeConfig } from './constants.js';
-import { goHomeProcedures, overrideInitRobotState, restartAuto } from './workflow.js';
+import { LAUNCH_COMMANDS, ROS_COMMANDS, STATE , initializeConfig } from './constants.js';
+import { overrideInitRobotState, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
@@ -88,6 +88,7 @@ async function initApp() {
     const mainBtn = document.getElementById('mainBtn');
     const secondBtn = document.getElementById('secondBtn');
     const settingsBtn = document.getElementById('settingsBtn');
+    const volumeBtn = document.getElementById('volumeBtn');
     const closeBtn = document.getElementById('closeBtn');
     const logoBtn = document.getElementById('alterEgoLogo');
     const unlockOverlay = document.getElementById('unlockOverlay');
@@ -103,12 +104,14 @@ async function initApp() {
     mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state, robotName));   
     secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state, robotName));
     settingsBtn.addEventListener('click',  () => settingsAction());
+    volumeBtn.addEventListener('click',  () => setVolume());
     closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
 
     // Gestione del click fuori dal popup per chiuderlo
     document.getElementById('popupOverlay').addEventListener('click', function(e) {
         if (e.target === this) {
             closeAdminMenu();
+            closeVolumeMenu();
         }
     });
 
@@ -127,7 +130,7 @@ async function initApp() {
             data: { pipelineState: state.pipelineState }
         }));    
     }
-    else {  // Override initial web app condition to STATE_INIT [mod. ADRIANO]
+    else {
         overrideInitRobotState(ws, state);
     }
 
@@ -135,7 +138,17 @@ async function initApp() {
     updateUI(state);
 
     // Start Battery Monitor
+    const isRemoteComputerOnline = await pingRemoteComputer();
+    if (isRemoteComputerOnline) {        
+        // Start battery monitor script
+        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.START}`);
+        await new Promise(r => setTimeout(r, 1000));
+        console.log("Start Battery Monitoring");
+    }
     batteryMonitor.start(ws, state.pipelineState);
+    
+    // Start checking battery
+    startBatteryCheck(robotName);
 }
 
 // Avvia l'applicazione quando il DOM è pronto

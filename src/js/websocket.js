@@ -18,7 +18,12 @@ let pageState = {
 const stateFile = path.join(__dirname, 'state.json');
 console.log("📁 Stato salvato in:", stateFile);
 if (fs.existsSync(stateFile)) {
-    pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    try {
+        pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    }
+    catch (error) {
+        console.error("❌ Error parsing state file:", error);
+    }
 }
 
 const wss = new WebSocket.Server({ noServer: true });
