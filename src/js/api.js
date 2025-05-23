@@ -526,21 +526,38 @@ export async function initializeSystem(ws, robotName) {
 //        const isStable = await checkStability(ws, robotName);
 //        if (!isStable) return false;
 
+        // Accendere le ruote automaticamente:
+        
+        // const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
+        //     title: 'Activating Wheels',
+        //     text: 'Pay attention!! Robot is activating balancing. RAISE the ROBOT and then Click OK to continue.', // Modified text
+        //     icon: 'warning',
+        //     // timer: 5000, // Removed timer
+        //     // timerProgressBar: true, // Removed timer progress bar
+        //     showConfirmButton: true, // Show confirm button
+        //     confirmButtonText: 'OK', // Set confirm button text
+        //     allowOutsideClick: false, // Prevent closing by clicking outside
+        //     allowEscapeKey: false, // Prevent closing with ESC key
+        //     showCancelButton: false // Ensure no cancel button is shown
+        // });
+
+        // Accendere le ruote non automaticamente:
         const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
             title: 'Activating Wheels',
-            text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
+            //text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
+            text: 'Pay attention!! RAISE the ROBOT and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
             icon: 'warning',
-            timer: 5000, // Removed timer
-            timerProgressBar: true, // Removed timer progress bar
-            showConfirmButton: false, //true, // Show confirm button
-            // confirmButtonText: 'OK', // Set confirm button text
-            // allowOutsideClick: false, // Prevent closing by clicking outside
-            // allowEscapeKey: false, // Prevent closing with ESC key
-            // showCancelButton: false // Ensure no cancel button is shown
-        });
+            //timer: 5000, // Removed timer
+            //timerProgressBar: true, // Removed timer progress bar
+            showConfirmButton: true, //true, // Show confirm button
+            confirmButtonText: 'OK', // Set confirm button text
+            allowOutsideClick: false, // Prevent closing by clicking outside
+            allowEscapeKey: false, // Prevent closing with ESC key
+            showCancelButton: false // Ensure no cancel button is shown
+        });       
 
         // Check if the user confirmed
-        /*if (!confirmWheels) {
+        if (!confirmWheels) {
             console.log('Wheel activation cancelled by user.');
             // Optionally, show another popup or handle cancellation
             await showSyncedPopup(ws, {
@@ -551,7 +568,7 @@ export async function initializeSystem(ws, robotName) {
                 showConfirmButton: false
             });
             return false; // Stop the initialization if cancelled
-        }*/
+        }
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);

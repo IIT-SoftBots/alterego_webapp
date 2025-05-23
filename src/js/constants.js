@@ -107,13 +107,12 @@ export function updateLaunchCommands() {
     // Questi comandi non hanno bisogno del parametro AlterEgoVersion
     LAUNCH_COMMANDS.FACE_RECOGNITION = 'roslaunch alterego_face_recognition face_recognition.launch';
     LAUNCH_COMMANDS.FACE_TRACKING = 'roslaunch alterego_face_tracking face_tracking.launch';
-    LAUNCH_COMMANDS.STT = 'roslaunch alterego_conversation speech2text.launch 2>/dev/null';
-    LAUNCH_COMMANDS.TTS = 'roslaunch alterego_text2speech text2speech.launch';
-    LAUNCH_COMMANDS.KILL_SPEECH = './home/alterego-vision/kill_speech.sh';
+    LAUNCH_COMMANDS.STT = 'roslaunch raise speech2text.launch 2>/dev/null';
+    LAUNCH_COMMANDS.TTS = 'roslaunch raise text2speech.launch';
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
-    LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_adjust_docking say_tired.launch';
+    LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
-    LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
+    LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play.launch';
     
     // Additional constants
     LAUNCH_COMMANDS.TARGET_LOC = 'Mostra1';
@@ -193,7 +192,6 @@ export function updateLaunchCommands() {
 //     FACE_TRACKING: 'roslaunch alterego_face_tracking face_tracking.launch',
 //     STT: 'roslaunch alterego_conversation speech2text.launch 2>/dev/null',
 //     TTS: 'roslaunch alterego_text2speech text2speech.launch',
-//     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
 //     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
 //     SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
 //     SAY_MOVE_OVER: 'roslaunch alterego_adjust_docking say_move_over.launch',

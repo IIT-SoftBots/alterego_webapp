@@ -210,7 +210,11 @@ export async function standUpProcedures(ws, robotName) {
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
 
     // Start FACE TRACKING and FACE RECOGNITION
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
     await new Promise(r => setTimeout(r, 2000));
 
     // Start Audio Services
@@ -221,12 +225,12 @@ export async function standUpProcedures(ws, robotName) {
     await new Promise(r => setTimeout(r, 2000));
 
     // Start Navigation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.NAVIGATION}`);
+    // await new Promise(r => setTimeout(r, 2000));
 
     // Send to Target Location
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`);
-    await new Promise(r => setTimeout(r, 4000));
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`);
+    // await new Promise(r => setTimeout(r, 4000));
 
     return true;
 }
@@ -242,8 +246,6 @@ export async function startAudio(ws, robotName) {
 }
 
 export async function stopAudio(ws, robotName){
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.KILL_SPEECH}`);
-    await new Promise(r => setTimeout(r, 2000));
   
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_TTS}`);
     await new Promise(r => setTimeout(r, 2000));
@@ -282,8 +284,8 @@ export async function stopRobotMovement(ws, robotName){
     await new Promise(r => setTimeout(r, 3000));
   
     // Stop Navigation
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
-    await new Promise(r => setTimeout(r, 4000));
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rosnode kill /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} /${robotName}${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
+    // await new Promise(r => setTimeout(r, 4000));
 
     return true;
 }
@@ -300,19 +302,19 @@ export async function goHomeProcedures(ws, robotName) {
 
     
     // Navigation from current position to home room
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.DOCK_STATION}'"`);  // Doubled to be sure
-    await new Promise(r => setTimeout(r, 4000));
+    // sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.DOCK_STATION}'"`);  // Doubled to be sure
+    // await new Promise(r => setTimeout(r, 4000));
 
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_MOVE_OVER}`);
-    await new Promise(r => setTimeout(r, 1000));
+    // sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_MOVE_OVER}`);
+    // await new Promise(r => setTimeout(r, 1000));
 
     // Alignment to charging station within fwdDistance distance (in meters)
-    var targetReached = false;
-    do {
-        targetReached = await targetReachedCheck(robotName);
-        await new Promise(r => setTimeout(r, 2000));
-    }
-    while (!targetReached);
+    // var targetReached = false;
+    // do {
+    //     targetReached = await targetReachedCheck(robotName);
+    //     await new Promise(r => setTimeout(r, 2000));
+    // }
+    // while (!targetReached);
 /*
     var approachActive = true;
     do {
@@ -418,8 +420,11 @@ export async function restartFromPauseProcedures(ws, state, robotName) {
 
     showLoading(true);
 
-    // Start FACE TRACKING
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+    // Start FACE RECOGNITION and TRACKING
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
     await new Promise(r => setTimeout(r, 2000));
 
     // Start Audio Services
