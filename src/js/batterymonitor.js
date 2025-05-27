@@ -172,6 +172,10 @@ export class BatteryMonitor {
     setShouldAutoRestart(val){
         this.shouldAutoRestart = val;
     }
+
+    getBatteryLevel(){
+        return this.batteryLevel;
+    }
 }
 
 export const batteryMonitor = BatteryMonitor.getInstance();

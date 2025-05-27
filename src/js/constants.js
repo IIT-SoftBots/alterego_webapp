@@ -111,7 +111,7 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.TTS = 'roslaunch alterego_text2speech text2speech.launch';
     LAUNCH_COMMANDS.KILL_SPEECH = './home/alterego-vision/kill_speech.sh';
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
-    LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_adjust_docking say_tired.launch';
+    LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
     LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
     

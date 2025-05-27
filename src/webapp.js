@@ -31,7 +31,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Configure timeouts
 app.keepAliveTimeout = 35000; // 35 seconds
-app.headersTimeout = 40000; // 40 seconds
+app.headersTimeout = 60000; // 60 seconds
 
 // Get host IP and derive NUC_BASE_IP using hostname -I
 // Fixed function with proper Promise handling

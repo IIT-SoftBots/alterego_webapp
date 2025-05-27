@@ -328,10 +328,10 @@ export async function goHomeProcedures(ws, robotName) {
 
 // --------------------- STATE CHANGE --------------------------------- //
 
-async function stopRobotToPowerOff(ws, state) {
+async function stopRobotToPowerOff(ws, state, do_check = true) {
     
     // Wait for Power Alert Trigger
-    if (batteryMonitor.timerIsSet()){
+    if (do_check && batteryMonitor.timerIsSet()){
         const powerIsOff = await waitForPowerAlertTrigger(ws, false);
 
         /*if (!powerIsOff) {
@@ -380,12 +380,14 @@ export async function robotPowerOnClick(ws, state, robotName) {
     return true;
 }
 
-export async function robotPowerOffClick(ws, state) {
+export async function robotPowerOffClick(ws, state, do_check = true) {
 
     // Stop Robot to Power Off
-    const stopRobotPowerOff = await stopRobotToPowerOff(ws, state);
-    if (!stopRobotPowerOff) {
-        return false;
+    if (do_check) {
+        const stopRobotPowerOff = await stopRobotToPowerOff(ws, state, do_check);
+        if (!stopRobotPowerOff) {
+            return false;
+        }
     }
     
     // Notify next workflow state
@@ -408,7 +410,7 @@ export async function robotHomeClick(ws, state, robotName) {
     const fwdDistance = await goHomeProcedures(ws, robotName);
 
     // Dock to charging station
-    dockingProcedures(ws, state, fwdDistance, robotName);
+    const dockProc= await dockingProcedures(ws, state, fwdDistance, robotName);
 
     showLoading(false);
 
@@ -477,10 +479,14 @@ export async function dockingProcedures(ws, state, maxLinDistance, robotName) {
     // Ask for help only if is_docked = TRUE but is_charging = FALSE ?!?
     // TODO: Check is_docked condition when having automatic docking procedure ready
     if (maxLinDistance == 0.0){
-        while (!batteryMonitor.getIsCharging()){
-            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
-            await new Promise(r => setTimeout(r, 60000));   // 1 minute
-        }
+        //while (!batteryMonitor.getIsCharging()){
+            if (batteryMonitor.getBatteryLevel() < 20) {
+                sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
+                await new Promise(r => setTimeout(r, 15000));
+                robotPowerOffClick(ws, state, false);
+            }   
+            //await new Promise(r => setTimeout(r, 60000));   // 1 minute
+        //}
     }
 
     // Notify next workflow state

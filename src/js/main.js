@@ -138,7 +138,22 @@ async function initApp() {
     updateUI(state);
 
     // Start Battery Monitor
-    const isRemoteComputerOnline = await pingRemoteComputer();
+    var isRemoteComputerOnline = await pingRemoteComputer();
+    while (!isRemoteComputerOnline) {
+        // Mostra errore se non connesso
+        const popupData = {
+            title: 'ERROR',
+            text: 'Base computer still not connected. Try again in 5 seconds..',
+            icon: 'warning',
+            timer: 5000, // Removed timer
+            timerProgressBar: true, // Removed timer progress bar
+            showConfirmButton: false,
+        };
+        
+        // Try once again
+        isRemoteComputerOnline = await pingRemoteComputer();
+    }
+
     if (isRemoteComputerOnline) {        
         // Start battery monitor script
         sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.START}`);
