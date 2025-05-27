@@ -57,6 +57,7 @@ export const LAUNCH_COMMANDS = {
     KILL_SPEECH: './home/alterego-vision/kill_speech.sh',
     NAVIGATION: 'roslaunch alterego_navigation autonomous_nav.launch',
     SAY_TIRED: 'roslaunch alterego_adjust_docking say_tired.launch',
+    SAY_MOVE_OVER: 'roslaunch alterego_adjust_docking say_move_over.launch',
 
     // Play ROSBAGS
     BREATH:'roslaunch alterego_rosbags_play play_breath.launch',

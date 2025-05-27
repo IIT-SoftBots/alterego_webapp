@@ -320,6 +320,8 @@ export async function goHomeProcedures(ws, robotName) {
     sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.DOCK_STATION}'"`);  // Doubled to be sure
     await new Promise(r => setTimeout(r, 4000));
 
+    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.SAY_MOVE_OVER}`);
+
     // Alignment to charging station within fwdDistance distance (in meters)
     var targetReached = false;
     do {
