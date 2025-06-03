@@ -136,7 +136,7 @@ export class BatteryMonitor {
             this.sameBatteryLevelCounter = 0;
         }
         
-        if (this.sameBatteryLevelCounter >= 10){
+        if (this.sameBatteryLevelCounter >= 50){
             this.sameBatteryLevelCounter = 0;
             return true;
         }
