@@ -187,15 +187,22 @@ async function getInitialVolume() {
     try {
         const command = "pactl list sinks | grep \"Volume:\" | head -n 1";
         const volumeString = await sendLocalCommand(command);  
-        return parseInt(volumeString.output.split('%')[0].split('/').pop().trim());
+        // Extract the percentage value (e.g. 75%)
+        let pactlVolume = parseInt(volumeString.output.split('%')[0].split('/').pop().trim());
+        // Limits to 150 and map on the slider
+        if (isNaN(pactlVolume)) pactlVolume = 50;
+        if (pactlVolume > 150) pactlVolume = 150;
+        return pactlVolume;
     } catch (error){
         return 50;      //Default in case of error
     }
 }
 
 function setVolumeLevel(level){
-    // Utilizzo di pactl per controllare il volume
-    sendLocalCommand(`pactl set-sink-volume @DEFAULT_SINK@ ${level}%`);
+    // Limits the level between 0 and 150
+    let pactlLevel = Math.max(0, Math.min(150, parseInt(level)));
+    // Use of pactl to control output volume (accepts also >100%)
+    sendLocalCommand(`pactl set-sink-volume @DEFAULT_SINK@ ${pactlLevel}%`);
 }
 
 export async function setVolume() {
