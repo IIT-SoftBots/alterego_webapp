@@ -5,14 +5,14 @@ import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButton
 
 // Importa le costanti e le funzioni utilities necessarie
 import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu } from './utils.js';
-import { getRobotName, pingRemoteComputer, sendCommand, showSyncedPopup, startBatteryCheck } from './api.js';
+import { pingRemoteComputer, sendCommand, showSyncedPopup, startBatteryCheck } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { LAUNCH_COMMANDS, ROS_COMMANDS, STATE , initializeConfig } from './constants.js';
 import { overrideInitRobotState, restartAuto } from './workflow.js';
 
 // Stato globale dell'applicazione
 // Mantiene lo stato di accensione, esecuzione e UI
-let state = {
+export let state = {
     isPowered: false,    // Stato di accensione del sistema
     isRunning: false,    // Stato di esecuzione del sistema
     pipelineState: 0,    // Workflow State
@@ -23,10 +23,7 @@ let state = {
 };
 
 // Connessione WebSocket globale
-let ws;
-
-// Nome del robot nel file .bashrc
-let robotName;
+export let ws;
 
 /**
  * Inizializza la connessione WebSocket
@@ -50,14 +47,14 @@ function initWebSocket() {
             state = { ...state, ...newState };
             
             // Aggiorna l'interfaccia utente
-            updateUI(state);
+            updateUI();
             
             // Gestione sincronizzata dei popup
             if (!state.uiState.activePopup && Swal.isVisible()) {
                 Swal.close();  // Chiudi popup se non più attivo
             }
             else if (state.uiState.activePopup) {
-                showSyncedPopup(ws, state.uiState.activePopup);
+                showSyncedPopup(state.uiState.activePopup);
             }
         }
     };
@@ -94,15 +91,12 @@ async function initApp() {
     const unlockOverlay = document.getElementById('unlockOverlay');
     
     // Configura monitor per clicks e batteria
-    const monitor = new ClickMonitor(ws, logoBtn);
-    const unlockMonitor = new UnlockClickMonitor(ws, unlockOverlay);
-
-    // Get Robot Name
-    robotName = "robot_adriano"; //await getRobotName();
+    const monitor = new ClickMonitor(logoBtn);
+    const unlockMonitor = new UnlockClickMonitor(unlockOverlay);
 
     // Aggiungi event listener
-    mainBtn.addEventListener('click', () => handleMainButtonClick(ws, state, robotName));   
-    secondBtn.addEventListener('click',  () => handleSecondButtonClick(ws, state, robotName));
+    mainBtn.addEventListener('click', () => handleMainButtonClick());   
+    secondBtn.addEventListener('click',  () => handleSecondButtonClick());
     settingsBtn.addEventListener('click',  () => settingsAction());
     volumeBtn.addEventListener('click',  () => setVolume());
     closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
@@ -121,7 +115,7 @@ async function initApp() {
     });
     
     if (state.pipelineState == STATE.RESTART_AUTO){
-        restartAuto(ws, state, robotName);
+        restartAuto();
 
         state.pipelineState = STATE.INIT;
             
@@ -131,24 +125,24 @@ async function initApp() {
         }));    
     }
     else {
-        overrideInitRobotState(ws, state);
+        overrideInitRobotState();
     }
 
     // Aggiorna l'interfaccia utente 
-    updateUI(state);
+    updateUI();
 
     // Start Battery Monitor
     const isRemoteComputerOnline = await pingRemoteComputer();
     if (isRemoteComputerOnline) {        
         // Start battery monitor script
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.START}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.START}`);
         await new Promise(r => setTimeout(r, 1000));
         console.log("Start Battery Monitoring");
     }
-    batteryMonitor.start(ws, state.pipelineState);
+    batteryMonitor.start(state.pipelineState);
     
     // Start checking battery
-    startBatteryCheck(robotName);
+    startBatteryCheck();
 }
 
 // Avvia l'applicazione quando il DOM è pronto

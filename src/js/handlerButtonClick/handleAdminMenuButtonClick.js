@@ -1,5 +1,6 @@
 import { sendCommand, showSyncedPopup, stopBatteryCheck } from '../api.js';
 import { LAUNCH_COMMANDS } from '../constants.js';
+import { ws } from '../main.js';
 import { openPopup } from '../utils.js';
 
 export function clickMonitorClose(monitor, unlockMonitor){
@@ -9,8 +10,7 @@ export function clickMonitorClose(monitor, unlockMonitor){
 }
 
 export class ClickMonitor {
-    constructor(websocket, imageElement, maxClicks = 3, timeWindow = 1000) {
-        this.websocket = websocket;
+    constructor(imageElement, maxClicks = 3, timeWindow = 1000) {
         this.imageElement = imageElement;
         this.maxClicks = maxClicks;
         this.timeWindow = timeWindow; // millisecondi
@@ -52,7 +52,7 @@ export class ClickMonitor {
         // Stop checking battery
         stopBatteryCheck();        
 
-        this.websocket.send(JSON.stringify({ type: 'closeApp' })); // Invia un messaggio di chiusura al server
+        ws.send(JSON.stringify({ type: 'closeApp' })); // Invia un messaggio di chiusura al server
     
         // Esempio per browser:
         //window.close();
@@ -64,8 +64,7 @@ export class ClickMonitor {
 }
 
 export class UnlockClickMonitor {
-    constructor(websocket, unlockElement, maxClicks = 3, timeWindow = 1000) {
-        this.websocket = websocket;
+    constructor(unlockElement, maxClicks = 3, timeWindow = 1000) {
         this.unlockElement = unlockElement;
         this.maxClicks = maxClicks;
         this.timeWindow = timeWindow; // millisecondi
@@ -98,7 +97,7 @@ export class UnlockClickMonitor {
         if (this.clickTimestamps.length >= this.maxClicks) {
 
              // First popup - Global warning
-            const warnAnsw = await showSyncedPopup(this.websocket, {
+            const warnAnsw = await showSyncedPopup({
                 title: 'Unlock Screen',
                 text: "Do you want to unlock the screen?",
                 icon: 'warning',

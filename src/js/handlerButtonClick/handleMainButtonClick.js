@@ -1,5 +1,6 @@
 import { pingRemoteComputer, showSyncedPopup} from '../api.js';
 import { STATE } from '../constants.js';
+import { state, ws } from '../main.js';
 import { updateUI } from '../utils.js';
 import { robotPowerOnClick, pauseProcedures, restartFromPauseProcedures, endChargeProcedures } from '../workflow.js';
 
@@ -7,7 +8,7 @@ import { robotPowerOnClick, pauseProcedures, restartFromPauseProcedures, endChar
  * Gestisce il click sul pulsante di accensione
  * Controlla la connessione e avvia/spegne il sistema
  */
-export async function handleMainButtonClick(ws, state, robotName) {
+export async function handleMainButtonClick() {
 
     const mainBtn = document.getElementById('mainBtn');
     mainBtn.disabled = true;
@@ -40,12 +41,12 @@ export async function handleMainButtonClick(ws, state, robotName) {
 
             if (state.pipelineState == STATE.WORK_MODE){
                 // Clicked to Pause
-                pauseProcedures(ws, state, robotName);
+                pauseProcedures();
                 state.isRunning = false;
             }
             else {
                 // Clicked to Play
-                restartFromPauseProcedures(ws, state, robotName);
+                restartFromPauseProcedures();
                 state.isRunning = true;
             }                    
             
@@ -63,7 +64,7 @@ export async function handleMainButtonClick(ws, state, robotName) {
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
             
             // First popup - Global warning
-            const warnAnsw = await showSyncedPopup(ws, {
+            const warnAnsw = await showSyncedPopup({
                 title: 'Start Robot',
                 text: "The system will move back and activate the robot now. Are you sure?",
                 icon: 'warning',
@@ -76,11 +77,11 @@ export async function handleMainButtonClick(ws, state, robotName) {
             if (!warnAnsw) return false;
 
             if (state.pipelineState == STATE.DOCKED) {  // In this case, the robot is still active
-                endChargeProcedures(ws, state);
+                endChargeProcedures();
             }
             else {
                 // Clicked to Start Robot
-                robotPowerOnClick(ws, state, robotName);
+                robotPowerOnClick();
                 state.isPowered = true;
 
                 // Notify new state
@@ -105,7 +106,7 @@ export async function handleMainButtonClick(ws, state, robotName) {
     }
     finally {
 
-        updateUI(state);
+        updateUI();
         
         mainBtn.disabled = false;
     }

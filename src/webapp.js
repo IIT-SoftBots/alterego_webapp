@@ -100,11 +100,34 @@ getNucIPs().then(async ips => {
             const version = parseInt(result, 10);
             if (!isNaN(version)) {
                 robotVersion = version;
-                console.log(`\nRobot Version: ${robotVersion}\n`);
+                console.log(`Robot Version: ${robotVersion}\n`);
             }
         }
     } catch (error) {
         console.error('Error getting robot version:', error);
+    }
+
+    // Get the robot name from .bashrc
+    let robotName = 'robot_alterego'; // Default value
+    try {
+        // Execute the command directly without SSH
+        const result = await new Promise((resolve, reject) => {
+            exec('grep -oP "(?<=export ROBOT_NAME=).*" ~/.bashrc', (error, stdout, stderr) => {
+                if (error) {
+                    console.warn('Could not find Robot Name in .bashrc, using default value');
+                    resolve(null);
+                } else {
+                    resolve(stdout.trim());
+                }
+            });
+        });
+        
+        if (result) {
+            robotName = result;
+            console.log(`Robot Name: ${robotName}\n`);            
+        }
+    } catch (error) {
+        console.error('Error getting robot name:', error);
     }
     
     // Update config endpoint to include robot version
@@ -112,7 +135,8 @@ getNucIPs().then(async ips => {
         res.json({ 
             NUC_BASE_IP: NUC_BASE_IP, 
             NUC_VISION_IP: NUC_VISION_IP,
-            AlterEgoVersion: robotVersion
+            AlterEgoVersion: robotVersion,
+            RobotName: robotName,  
         });
     });
     
@@ -278,14 +302,22 @@ app.post('/execute', async (req, res) => {
             });
         });
 
-        client.on('error', (err) => {
-            console.error('SSH connection error:', err);
-            if (err.code === 'ECONNRESET') {
-                console.log('ECONNRESET noticed...');  // Allow to move on turn off other NUC
-                res.json({ success: true, output });
+        client.on('error', (clientErr) => { // For SSH connection-level errors
+            console.error(`SSH client connection error for command "${req.body.command}": ${clientErr.message}`);
+            if (!res.headersSent) {
+                // Attempt to inform the HTTP client only if no response has been sent yet
+                if (clientErr.code === 'ECONNRESET' && req.body.command && req.body.command.includes('shutdown')) {
+                    console.log('ECONNRESET during shutdown command, considered expected if command was initiated.');
+                    res.json({ success: true, message: "Shutdown command likely initiated; connection reset is expected." });
+                } else {
+                    res.status(500).json({ success: false, error: `SSH client error: ${clientErr.message}` });
+                }
             } else {
-                res.status(500).json({ success: false, error: err.message });
-            }            
+                // Headers already sent, just log the error.
+                console.warn(`SSH client.on('error') ("${clientErr.message}") occurred, but headers already sent. Cannot send HTTP error response.`);
+            }
+            // Always ensure the client is closed on connection-level errors.
+            if (client && !client.destroyed) client.end();
         });
 
         client.connect(connectionParams); // Connect the client

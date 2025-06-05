@@ -29,13 +29,10 @@ export class BatteryMonitor {
 
         this.batteryInterval = [];
         this.isTimerSet = false;
-        this.websocket = 0;
         this.fsmState = 0;  
     }
 
-    start(ws, initState){
-
-        this.websocket = ws;
+    start(initState){
         this.fsmState = initState;
     }   
 

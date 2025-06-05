@@ -1,7 +1,8 @@
 import { batteryMonitor } from './batterymonitor.js';
-import { NUC_BASE_IP, ROS_CATKIN_WS, ROS_HOSTNAME, ROS_IP, ROS_MASTER_URI, ROS_SRC_FOLDER } from './constants.js';
+import { NUC_BASE_IP, RobotName, ROS_CATKIN_WS, ROS_HOSTNAME, ROS_IP, ROS_MASTER_URI, ROS_SRC_FOLDER } from './constants.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 import { updateBatteryGraphics } from './utils.js';
+import { ws } from './main.js';
 
 /**
  * Executes a generic command through the server
@@ -81,33 +82,6 @@ export async function getBatteryStatus() {
 }
 
 /**
- * Retrieves the robot name from .bashrc
- * @returns {Promise<string>} The robot name
- * @throws {Error} If robot name cannot be retrieved
- */
-export async function getRobotName() {
-    try {
-        const response = await fetch('/grep-command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                command: 'grep -oP "(?<=export ROBOT_NAME=).*" ~/.bashrc' 
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.output.trim();
-    } catch (error) {
-        console.error('Error getting robot name:', error);
-        throw error;
-    }
-}
-
-/**
  * Checks if a ROS node is currently running
  * @param {string} nodeName - Name of the node to check
  * @returns {Promise<boolean>} True if node is running, false otherwise
@@ -167,14 +141,12 @@ export async function pingRemoteComputer() {
 /**
  * Initializes IMU sensors with calibration process
  * Shows synchronized popups for calibration steps
- * @param {WebSocket} ws - WebSocket connection for sync
- * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if initialization successful
  */
-export async function initializeIMU(ws, robotName) {
+export async function initializeIMU() {
     try {
         // First popup - Calibration warning
-        /*const initIMU = await showSyncedPopup(ws, {
+        /*const initIMU = await showSyncedPopup({
             title: 'Calibration in Progress',
             text: "Do not touch the robot during calibration.",
             icon: 'warning',
@@ -189,14 +161,14 @@ export async function initializeIMU(ws, robotName) {
         */
 
         // Send IMU command
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.IMU}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.IMU}`);
         console.log('IMU initialization command sent');
 
         // Add a small delay to ensure the first popup is fully closed
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Second popup - Calibration progress
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Calibrating IMU...',
             html: 'Do not touch the robot during calibration. Wait for 5 seconds',
             timer: 5000,
@@ -224,7 +196,7 @@ export async function initializeIMU(ws, robotName) {
         const numIMUs = parseInt(data.output.match(/\d+/)?.[0] || '0');
         
         if (numIMUs !== 3) {
-            await showSyncedPopup(ws, {
+            await showSyncedPopup({
                 title: 'ERROR',
                 text: 'IMU not Connected',
                 icon: 'error'
@@ -240,7 +212,7 @@ export async function initializeIMU(ws, robotName) {
         
     } catch (error) {
         console.error('IMU initialization error:', error);
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Error',
             text: 'IMU initialization failed',
             icon: 'error'
@@ -251,9 +223,8 @@ export async function initializeIMU(ws, robotName) {
 
 /**
  * Checks battery status from topic
- * @param {string} robotName - Name of the robot
  */
-export async function startBatteryCheck(robotName) {
+export async function startBatteryCheck() {
     const MAX_NULL_READINGS = 3;
     const POLLING_INTERVAL = 2000;
     var topicDataOutput;
@@ -307,7 +278,7 @@ export async function startBatteryCheck(robotName) {
 
                 if (batteryMonitor.checkLastBatteryLevel() && batteryLevel != 0 && batteryLevel != 100){
                     // Reset battery monitor script if it is stucked
-                    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.RESTART}`);
+                    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BATTERY_MONITOR.RESTART}`);
                     await new Promise(r => setTimeout(r, 1000));
                     console.log("Restart Battery Monitoring");
                 }
@@ -338,15 +309,14 @@ export async function stopBatteryCheck(){
 
 /**
  * Checks target reached from topic
- * @param {string} robotName - Name of the robot
  */
-export async function targetReachedCheck(robotName) {
+export async function targetReachedCheck() {
     var topicDataOutput;
             
     // Start checking stability
     try {
 
-        topicDataOutput = await getTopicValue(`/${robotName}/goal_reached`);      // Last at max. 3 retries x 500 ms = 1500 ms      
+        topicDataOutput = await getTopicValue(`/${RobotName}/goal_reached`);      // Last at max. 3 retries x 500 ms = 1500 ms      
 
         if (topicDataOutput == null) {
             
@@ -376,10 +346,9 @@ export async function targetReachedCheck(robotName) {
 /**
  * Wait for Power Alert trigger to switch power off
  * Shows synchronized popups while waiting
- * @param {WebSocket} ws - WebSocket connection for sync
  * @returns {Promise<boolean>} True if initialization successful
  */
-export async function waitForPowerAlertTrigger(ws, needPower) {
+export async function waitForPowerAlertTrigger(needPower) {
     try {
             
         while (!batteryMonitor.timerIsSet()){
@@ -387,10 +356,11 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
         }
         
         if (batteryMonitor.timerIsSet()){
-            // Battery topic is monitored            
+            // Battery topic is monitored      
+            let warningShown = false;      
             while (needPower == batteryMonitor.getPowerAlert()){ 
 
-                await showSyncedPopup(ws, {
+                await showSyncedPopup({
                     title: 'Power Alert',
                     text: 'Power is still ' + ((needPower)?'off':'on') + '. Please push the Emergency Button to switch ' + ((needPower)?'on':'off') + ' power',
                     icon: 'warning',
@@ -402,15 +372,21 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
                 
                 // Add a small delay to ensure the first popup is fully closed
                 await new Promise(resolve => setTimeout(resolve, 500));            
+                warningShown = true;
             }     
 
+            if (warningShown && needPower) {
+                // Execute the USB ports detector again to assign arm ports
+                sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.USB_DETECTOR}`);
+                await new Promise(r => setTimeout(r, 2000));
+            }
             return true;
         }   
         return false;
         
     } catch (error) {
         console.error('Power Alert Trigger error:', error);
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Error',
             text: 'Power Alert Trigger failed',
             icon: 'error'
@@ -422,17 +398,15 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
 /**
  * Handles backward movement of the robot
  * Shows synchronized warning popup and monitors movement
- * @param {WebSocket} ws - WebSocket connection for sync
- * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if movement completed
  */
-export async function handleDockingMovement(ws, robotName, direction, maxLinDistance) {
+export async function handleDockingMovement(direction, maxLinDistance) {
     try {
         console.log("Starting " + direction + " movement...");
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Popup - Info to clear space
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Moving ' + direction,
             text: 'Pay attention!! Clear the space ' + ((direction=="forward")?'in front of':'behind') + ' the robot...',
             icon: 'info',
@@ -442,7 +416,7 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
         });
         
         // First popup - Safety warning
-        // await showSyncedPopup(ws, {
+        // await showSyncedPopup({
         //     title: 'Safety Check',
         //     text: Clear the space ' + ((direction=="forward")?'in front of':'behind') + ' the robot...',
         //     icon: 'warning',
@@ -455,7 +429,7 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
         
 
         // Send docking movement command
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.DOCKING} movementDirection:="${direction}" maxLinDistance:=${maxLinDistance}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.DOCKING} movementDirection:="${direction}" maxLinDistance:=${maxLinDistance}`);
         
         // Add a small delay before showing the progress popup
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -474,12 +448,12 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
                     Swal.showLoading();
                     // Start checking node status
                     checkInterval = setInterval(async () => {
-                        const isNodeActive = await checkNodeStatus(`/${robotName}/wheels/docking`);
+                        const isNodeActive = await checkNodeStatus(`/${RobotName}/wheels/docking`);
                         if (!isNodeActive) {
                             clearInterval(checkInterval);
                             Swal.close();
                             // Show completion popup
-                            await showSyncedPopup(ws, {
+                            await showSyncedPopup({
                                 title: 'Complete',
                                 text: direction + ' movement completed',
                                 icon: 'success',
@@ -501,7 +475,7 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
 
     } catch (error) {
         console.error('Error in ' + direction + ' movement:', error);
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Error',
             text: 'Failed to move ' + direction,
             icon: 'error'
@@ -513,36 +487,30 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
 /**
  * Initializes the robot system
  * Checks stability, activates wheels and arms
- * @param {WebSocket} ws - WebSocket connection for sync
- * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if initialization successful
  */
-export async function initializeSystem(ws, robotName) {
+export async function initializeSystem() {
     try {
         // Wait for system stabilization
         await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Check stability (Uncomment if an external help is needed to raise)
-//        const isStable = await checkStability(ws, robotName);
+//        const isStable = await checkStability();
 //        if (!isStable) return false;
 
         // Accendere le ruote automaticamente:
         
-        // const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
+        // const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
         //     title: 'Activating Wheels',
-        //     text: 'Pay attention!! Robot is activating balancing. RAISE the ROBOT and then Click OK to continue.', // Modified text
+        //     text: 'Pay attention!! Robot is activating balancing...', // Modified text
         //     icon: 'warning',
-        //     // timer: 5000, // Removed timer
-        //     // timerProgressBar: true, // Removed timer progress bar
-        //     showConfirmButton: true, // Show confirm button
-        //     confirmButtonText: 'OK', // Set confirm button text
-        //     allowOutsideClick: false, // Prevent closing by clicking outside
-        //     allowEscapeKey: false, // Prevent closing with ESC key
-        //     showCancelButton: false // Ensure no cancel button is shown
+        //     timer: 5000, // Removed timer
+        //     timerProgressBar: true, // Removed timer progress bar
+        //     showConfirmButton: false, // Show confirm button
         // });
 
         // Accendere le ruote non automaticamente:
-        const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
+        const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
             title: 'Activating Wheels',
             //text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
             text: 'Pay attention!! RAISE the ROBOT and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
@@ -560,7 +528,7 @@ export async function initializeSystem(ws, robotName) {
         if (!confirmWheels) {
             console.log('Wheel activation cancelled by user.');
             // Optionally, show another popup or handle cancellation
-            await showSyncedPopup(ws, {
+            await showSyncedPopup({
                 title: 'Cancelled',
                 text: 'Wheel activation was cancelled.',
                 icon: 'info',
@@ -571,24 +539,24 @@ export async function initializeSystem(ws, robotName) {
         }
 
         // Start wheels control
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.WHEELS}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.WHEELS}`);
         await new Promise(r => setTimeout(r, 2000));
         
         // Activate arm motors
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BODY_ACTIVATION}`);
         await new Promise(r => setTimeout(r, 2000));
 
         console.log("Pre Checking arm motors activation...");
 
         // Check motors activation
-        const motorsActivated = await checkMotorsActivation(ws, robotName);
+        const motorsActivated = await checkMotorsActivation();
         if (!motorsActivated) return false;
         
         await new Promise(r => setTimeout(r, 2000));
         console.log("Pre Checking arm motors movement...");
         
         // Start movement control
-        sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BODY_MOVEMENT}`);
         await new Promise(r => setTimeout(r, 2000));
         
         
@@ -599,7 +567,7 @@ export async function initializeSystem(ws, robotName) {
 
     } catch (error) {
         console.error('Error in system initialization:', error);
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Error',
             text: 'System initialization failed',
             icon: 'error'
@@ -668,10 +636,9 @@ export async function getTopicValue(topic) {
 
 /**
  * Checks robot stability using IMU readings
- * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if robot is stable
  */
-export async function checkStability(ws, robotName) {
+export async function checkStability() {
     try {
         console.log("Starting stability check...");
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -685,7 +652,7 @@ export async function checkStability(ws, robotName) {
             let stableStartTime = null;
             
             // Show progress popup with stability checking
-            showSyncedPopup(ws, {
+            showSyncedPopup({
                 title: 'Checking Stability...',
                 text: 'Please wait and raise the robot',
                 allowOutsideClick: false,
@@ -698,7 +665,7 @@ export async function checkStability(ws, robotName) {
                     // Start checking stability
                     checkInterval = setInterval(async () => {
                         try {
-                            const topicDataOutput = await getTopicValue(`/${robotName}/imu/RPY`);
+                            const topicDataOutput = await getTopicValue(`/${RobotName}/imu/RPY`);
                             
                             // Extract y value
                             const match = topicDataOutput.match(/y:\s*([-]?\d*\.?\d*)/);
@@ -718,7 +685,7 @@ export async function checkStability(ws, robotName) {
                                     console.error('Too many failed readings');
                                     clearInterval(checkInterval);
                                     Swal.close();
-                                    await showSyncedPopup(ws, {
+                                    await showSyncedPopup({
                                         title: 'Error',
                                         text: 'Stability check failed - No readings',
                                         icon: 'error'
@@ -744,7 +711,7 @@ export async function checkStability(ws, robotName) {
                                     console.log('Stability achieved');
                                     clearInterval(checkInterval);
                                     Swal.close();
-                                    await showSyncedPopup(ws, {
+                                    await showSyncedPopup({
                                         title: 'Complete',
                                         text: 'Stability check successful',
                                         icon: 'success',
@@ -775,7 +742,7 @@ export async function checkStability(ws, robotName) {
 
     } catch (error) {
         console.error('Error in stability check:', error);
-        await showSyncedPopup(ws, {
+        await showSyncedPopup({
             title: 'Error',
             text: 'Stability check failed',
             icon: 'error'
@@ -785,18 +752,16 @@ export async function checkStability(ws, robotName) {
 }
 /**
  * Checks if arm motors are properly activated
- * @param {WebSocket} ws - WebSocket connection for sync
- * @param {string} robotName - Name of the robot
  * @returns {Promise<boolean>} True if motors are activated
  */
-export async function checkMotorsActivation(ws, robotName) {
+export async function checkMotorsActivation() {
     return new Promise((resolve) => {
         let activationDetected = false;
         let checkCount = 0;
         const MAX_ATTEMPTS = 10; // 20 seconds (10 * 2000ms)
         console.log("Checking arm motors activation...");
         // Show progress popup with activation checking
-        showSyncedPopup(ws, {
+        showSyncedPopup({
             title: 'Activating arms...',
             text: 'Waiting for activation',
             allowOutsideClick: false,
@@ -814,7 +779,7 @@ export async function checkMotorsActivation(ws, robotName) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
-                                command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 /${robotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
+                                command: `source /opt/ros/noetic/setup.bash && source ` + ROS_CATKIN_WS + `/devel/setup.bash && rostopic echo -n 1 /${RobotName}/alterego_state/upperbody | grep left_meas_arm_shaft`
                             })
                         });
                          
@@ -853,12 +818,11 @@ export async function checkMotorsActivation(ws, robotName) {
 }
 /**
  * Checks if movement controller is running
- * @param {WebSocket} ws - WebSocket connection for sync
  * @returns {Promise<boolean>} True if controller is active
  */
-export async function checkMovementController(ws) {
+export async function checkMovementController() {
     return new Promise((resolve) => {
-        showSyncedPopup(ws, {
+        showSyncedPopup({
             title: 'Activating movement...',
             text: 'Please wait...',
             timer: 5000,
@@ -895,7 +859,7 @@ export function initializeWebSocket(state, updateUI) {
 
         if (data.type === 'stateUpdate') {
             Object.assign(state, data.data);
-            updateUI(state);
+            updateUI();
         }
     };
 
@@ -911,7 +875,6 @@ export function initializeWebSocket(state, updateUI) {
 }
 /**
  * Shows a synchronized popup across all connected clients
- * @param {WebSocket} ws - WebSocket connection
  * @param {Object} popupData - SweetAlert2 configuration object
  * @param {string} popupData.title - Popup title
  * @param {string} popupData.text - Popup message
@@ -921,7 +884,7 @@ export function initializeWebSocket(state, updateUI) {
  * @param {boolean} [popupData.allowEscapeKey] - Allow ESC key to close
  * @returns {Promise<boolean>} True if confirmed, false otherwise
  */
-export function showSyncedPopup(ws, popupData) {
+export function showSyncedPopup(popupData) {
     // Evita duplicati
     if (Swal.isVisible()) return Promise.resolve(false);
     

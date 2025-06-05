@@ -1,13 +1,14 @@
 import { showSyncedPopup } from '../api.js';
 import { batteryMonitor } from '../batterymonitor.js';
 import { STATE } from '../constants.js';
+import { state, ws } from '../main.js';
 import { updateUI } from '../utils.js';
 import { robotHomeClick, robotPowerOffClick } from '../workflow.js';
 /**
  * Gestisce il click sul pulsante Home
  * Avvia il movimento verso la posizione home
  */
-export async function handleSecondButtonClick(ws, state, robotName) {
+export async function handleSecondButtonClick() {
 
     const secondBtn = document.getElementById('secondBtn');
     secondBtn.disabled = true;
@@ -19,7 +20,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
 
             // First popup - Global warning
-            const warnAnsw = await showSyncedPopup(ws, {
+            const warnAnsw = await showSyncedPopup({
                 title: 'Power Off',
                 text: "The system will deactivate the robot and power off now. Are you sure?",
                 icon: 'warning',
@@ -32,7 +33,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
             if (!warnAnsw) return;
 
             // Switch Everything Off
-            robotPowerOffClick(ws, state);
+            robotPowerOffClick();
             state.isPowered = false;
             
             ws.send(JSON.stringify({
@@ -42,7 +43,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
         }
         else {
             // Clicked to Go Home
-            const warnAnsw = await showSyncedPopup(ws, {
+            const warnAnsw = await showSyncedPopup({
                 title: 'Home Position',
                 text: "The system will navigate towards its home now. Are you sure?",
                 icon: 'warning',
@@ -56,7 +57,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
 
             // Homing
             batteryMonitor.setShouldAutoRestart(false);
-            robotHomeClick(ws, state, robotName);
+            robotHomeClick();
             state.isRunning = false;
 
             ws.send(JSON.stringify({
@@ -72,7 +73,7 @@ export async function handleSecondButtonClick(ws, state, robotName) {
     }  
     finally {
 
-        updateUI(state);
+        updateUI();
 
         secondBtn.disabled = false;
     }    

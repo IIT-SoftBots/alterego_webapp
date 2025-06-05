@@ -1,19 +1,10 @@
 import { sendLocalCommand } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { STATE, UI_STATES } from './constants.js';
-
-// Salva lo stato dei pulsanti nel localStorage
-export function saveButtonState(buttonId, state) {
-    localStorage.setItem(buttonId, state);
-}
-
-// Carica lo stato dei pulsanti dal localStorage
-export function loadButtonState(buttonId) {
-    return localStorage.getItem(buttonId) === 'true';
-}
+import { state } from './main.js';
 
 // Aggiorna l'interfaccia utente in base allo stato
-export function updateUI(state) {    
+export function updateUI() {    
 
     const mainBtn = document.getElementById('mainBtn');
     const secondBtn = document.getElementById('secondBtn');
@@ -187,9 +178,7 @@ async function getInitialVolume() {
     try {
         const command = "pactl list sinks | grep \"Volume:\" | head -n 1";
         const volumeString = await sendLocalCommand(command);  
-        // Extract the percentage value (e.g. 75%)
         let pactlVolume = parseInt(volumeString.output.split('%')[0].split('/').pop().trim());
-        // Limits to 150 and map on the slider
         if (isNaN(pactlVolume)) pactlVolume = 50;
         if (pactlVolume > 150) pactlVolume = 150;
         return pactlVolume;
@@ -199,9 +188,8 @@ async function getInitialVolume() {
 }
 
 function setVolumeLevel(level){
-    // Limits the level between 0 and 150
+    // Utilizzo di pactl per controllare il volume
     let pactlLevel = Math.max(0, Math.min(150, parseInt(level)));
-    // Use of pactl to control output volume (accepts also >100%)
     sendLocalCommand(`pactl set-sink-volume @DEFAULT_SINK@ ${pactlLevel}%`);
 }
 
