@@ -203,37 +203,5 @@ export const UI_STATES = {
     }
 };   
 
-// Robot configuration variables - they will be updated by loadAndApplySettings
-export let CONF_FEATURES = {
-    enableFaceRecognition: {
-        value: false,
-        label: 'Face Recognition'
-    },
-    enableFaceTracking: {
-        value: false,
-        label: 'Face Tracking'
-    },
-    enableAudio: {
-        value: false,
-        label: 'Audio'
-    },
-    enableVideo: {
-        value: false,
-        label: 'Video'
-    },
-    enableNavigation: {
-        value: false,
-        label: 'Navigation (ROS Nodes)'
-    },
-    enableAutoNavigation: {
-        value: false,
-        label: 'Autonomous Navigation (Target-DockStation)'
-    },
-    enableRobotBreath: {
-        value: false,
-        label: 'Robot Breath'
-    },
-};
-
 // Initialize launch commands with default version
 updateLaunchCommands();

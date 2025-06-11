@@ -9,7 +9,6 @@ const proxy = require('express-http-proxy'); // Importa express-http-proxy
 
 // Importa WebSocket
 const { wss } = require('./js/websocket');
-const { CONF_FEATURES } = require('./js/constants');
 
 const app = express();
 const port = 3000;
