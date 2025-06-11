@@ -4,7 +4,7 @@ import { ClickMonitor, clickMonitorClose, UnlockClickMonitor } from './handlerBu
 import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
-import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu, loadAndApplySettings } from './utils.js';
+import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu } from './utils.js';
 import { pingRemoteComputer, sendCommand, showSyncedPopup, startBatteryCheck } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { LAUNCH_COMMANDS, ROS_COMMANDS, STATE , initializeConfig } from './constants.js';
@@ -74,9 +74,6 @@ async function initApp() {
     // Initialize config first
     await initializeConfig();
     console.log('Config initialized');
-
-    // Carica le impostazioni all'avvio
-    await loadAndApplySettings();
    
     // Carica i componenti UI
     const resLoad = await loadComponent('button-grid', 'components/button-grid.html');
