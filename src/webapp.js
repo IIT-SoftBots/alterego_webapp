@@ -4,10 +4,13 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
+const yaml = require('js-yaml');
 const os = require('os'); // Add os module to get system information
+const proxy = require('express-http-proxy'); // Importa express-http-proxy
 
 // Importa WebSocket
 const { wss } = require('./js/websocket');
+const { CONF_FEATURES } = require('./js/constants');
 
 const app = express();
 const port = 3000;
@@ -372,4 +375,138 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
     process.exit(1);
+});
+
+
+
+
+// -------------- Custom Task Server ------------------
+const appTasks = express();
+const portTasks = 3001;
+
+// Middleware and static as the main app
+appTasks.use(bodyParser.json());
+appTasks.use(express.json());
+
+// Serves tasks-index.html page as root
+appTasks.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'custom_tasks', 'tasks-index.html'));
+});
+
+// --- API MIRROR: all the main app routes are replicated on appTasks ---
+const routesToMirror = [
+    { method: 'get', path: '/api/config' },
+    { method: 'post', path: '/execute-local' },
+    { method: 'post', path: '/execute' },
+    { method: 'post', path: '/grep-command' },
+    { method: 'post', path: '/send-videocommand' },
+    { method: 'post', path: '/ping' }
+    // add other routes here if needed
+];
+
+routesToMirror.forEach(route => {
+    const proxyTargetHost = `localhost:${port}`;
+    const proxyTarget = `http://${proxyTargetHost}`;
+    
+    // Utilizzo di express-http-proxy
+    appTasks[route.method](route.path, proxy(proxyTargetHost, {
+        proxyReqPathResolver: function (req) {
+            const newPath = req.originalUrl;
+            //console.log(`[API Mirror - appTasks:${portTasks}] Proxying ${req.method} ${req.originalUrl} (req.path: ${req.path}) to ${proxyTarget}${newPath}`);
+            return newPath;
+        },
+        userResDecorator: function(proxyRes, proxyResData, userReq, userRes) {
+            //console.log(`[API Mirror - appTasks:${portTasks}] Received response from target for ${userReq.method} ${userReq.originalUrl}`);
+            return proxyResData;
+        },
+        proxyErrorHandler: function(err, res, next) {
+            //console.error(`[API Mirror - appTasks:${portTasks}] Proxy error for original request to ${res.req.originalUrl}:`, err);
+            if (res && !res.headersSent){
+                res.status(500).send('Proxy error');
+            } else {
+                next(err);
+            }
+        }
+    }));
+});
+
+// Serve static files AFTER defining the root route
+appTasks.use(express.static(path.join(__dirname, 'custom_tasks')));
+appTasks.use('/components', express.static(path.join(__dirname, 'components')));
+appTasks.use('/images', express.static(path.join(__dirname, 'images')));
+appTasks.use('/js', express.static(path.join(__dirname, 'js')));
+appTasks.use('/css', express.static(path.join(__dirname, 'css')));
+
+// --- CUSTOM API (ONLY ON 3001) ---
+appTasks.post('/custom-task', (req, res) => {
+    // Custom logic only for port 3001
+    res.json({ success: true, message: 'Custom task executed!' });
+});
+
+appTasks.listen(portTasks, () => {
+    console.log(`Custom server running at http://localhost:${portTasks}`);
+});
+
+// -------------- Configuration Features ------------------
+const CONFIGURATION_FILE_PATH = path.join(__dirname, 'config', 'robot_webapp_configuration.yaml');
+// Costruisci DEFAULT_FEATURES basandoti sui valori di CONF_FEATURES da constants.js
+const DEFAULT_FEATURES = {};
+for (const key in CONF_FEATURES) {
+    if (Object.hasOwnProperty.call(CONF_FEATURES, key) && CONF_FEATURES[key] && typeof CONF_FEATURES[key].value !== 'undefined') {
+        DEFAULT_FEATURES[key] = CONF_FEATURES[key].value;
+    } else {
+        // Fallback nel caso la struttura non sia come previsto o value sia undefined
+        console.warn(`Chiave "${key}" in CONF_FEATURES non ha una proprietà 'value' definita o la struttura è inattesa. Impostazione a false di default.`);
+        DEFAULT_FEATURES[key] = false;
+    }
+}
+function readFeatures() {
+    if (fs.existsSync(CONFIGURATION_FILE_PATH)) {
+        try {
+            const fileContents = fs.readFileSync(CONFIGURATION_FILE_PATH, 'utf8');
+            const loadedFeatures = yaml.load(fileContents);
+            // Assicura che tutte le chiavi di default siano presenti
+            // e che i valori caricati sovrascrivano i default solo se presenti nel file
+            const mergedFeatures = { ...DEFAULT_FEATURES };
+            for (const key in loadedFeatures) {
+                if (Object.hasOwnProperty.call(loadedFeatures, key) && Object.hasOwnProperty.call(mergedFeatures, key)) {
+                    mergedFeatures[key] = loadedFeatures[key];
+                }
+            }
+            return mergedFeatures;
+        } catch (error) {
+            console.error('Error reading or parsing features file, using defaults:', error);
+            return { ...DEFAULT_FEATURES };
+        }
+    }
+    return { ...DEFAULT_FEATURES};
+}
+
+function writeFeatures(features) {
+    try {
+        const dir = path.dirname(CONFIGURATION_FILE_PATH);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        const yamlStr = yaml.dump(features);
+        fs.writeFileSync(CONFIGURATION_FILE_PATH, yamlStr, 'utf8');
+        console.log('Features saved to:', CONFIGURATION_FILE_PATH);
+    } catch (error) {
+        console.error('Error writing features file:', error);
+    }
+}
+
+// API route to get features
+app.get('/api/features', (req, res) => {
+    const features = readFeatures();
+    res.json(features);
+});
+
+// API route to update features
+app.post('/api/features', (req, res) => {
+    const newFeatures = req.body;
+    // Basic validation: ensure all default keys are present if partial update is not desired
+    const updatedFeatures = { ...readFeatures(), ...newFeatures };
+    writeFeatures(updatedFeatures);
+    res.json({ success: true, message: 'Features updated successfully.', features: updatedFeatures });
 });

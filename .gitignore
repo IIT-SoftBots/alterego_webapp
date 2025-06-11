@@ -1,2 +1,4 @@
 WebApp-linux-x64/
 .qodo
+.vscode/
+node_modules/

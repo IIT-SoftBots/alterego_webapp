@@ -4,7 +4,7 @@ import { ClickMonitor, clickMonitorClose, UnlockClickMonitor } from './handlerBu
 import { handleSecondButtonClick } from './handlerButtonClick/handleSecondButtonClick.js';
 
 // Importa le costanti e le funzioni utilities necessarie
-import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu } from './utils.js';
+import { updateUI, loadComponent, closeAdminMenu, settingsAction, setVolume, closeVolumeMenu, loadAndApplySettings } from './utils.js';
 import { pingRemoteComputer, sendCommand, showSyncedPopup, startBatteryCheck } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
 import { LAUNCH_COMMANDS, ROS_COMMANDS, STATE , initializeConfig } from './constants.js';
@@ -23,15 +23,15 @@ export let state = {
 };
 
 // Connessione WebSocket globale
-export let ws;
+let ws = new WebSocket(`ws://localhost:3000`);
+export { ws };
 
 /**
  * Inizializza la connessione WebSocket
  * Gestisce gli aggiornamenti di stato e la riconnessione automatica
  */
 function initWebSocket() {
-    ws = new WebSocket(`ws://localhost:3000`);
-   
+    
     // Handler per i messaggi in arrivo
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -65,21 +65,25 @@ function initWebSocket() {
     };
 }
 
-
 /**
  * Inizializza l'applicazione
  * Carica i componenti e configura gli event listener
  */
 async function initApp() {
+
     // Initialize config first
     await initializeConfig();
     console.log('Config initialized');
-    // Inizializza WebSocket
-    initWebSocket();
 
+    // Carica le impostazioni all'avvio
+    await loadAndApplySettings();
+   
     // Carica i componenti UI
     const resLoad = await loadComponent('button-grid', 'components/button-grid.html');
     const resComp = await loadComponent('status-panel', 'components/status-panel.html');
+
+    // Inizializza WebSocket
+    initWebSocket();
 
     // Configura i pulsanti
     const mainBtn = document.getElementById('mainBtn');
@@ -145,5 +149,9 @@ async function initApp() {
     startBatteryCheck();
 }
 
-// Avvia l'applicazione quando il DOM è pronto
-document.addEventListener('DOMContentLoaded', initApp);
+// Avvia l'applicazione quando il DOM è pronto, MA SOLO se non è la pagina custom tasks
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.isCustomTasksPage) {
+        initApp();
+    } 
+});

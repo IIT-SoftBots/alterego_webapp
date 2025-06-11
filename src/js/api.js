@@ -500,17 +500,17 @@ export async function initializeSystem() {
 
         // Accendere le ruote automaticamente:
         
-        // const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
-        //     title: 'Activating Wheels',
-        //     text: 'Pay attention!! Robot is activating balancing...', // Modified text
-        //     icon: 'warning',
-        //     timer: 5000, // Removed timer
-        //     timerProgressBar: true, // Removed timer progress bar
-        //     showConfirmButton: false, // Show confirm button
-        // });
+        const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
+            title: 'Activating Wheels',
+            text: 'Pay attention!! Robot is activating balancing...', // Modified text
+            icon: 'warning',
+            timer: 5000, // Removed timer
+            timerProgressBar: true, // Removed timer progress bar
+            showConfirmButton: false, // Show confirm button
+        });
 
         // Accendere le ruote non automaticamente:
-        const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
+        /*const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
             title: 'Activating Wheels',
             //text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
             text: 'Pay attention!! RAISE the ROBOT and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
@@ -536,7 +536,7 @@ export async function initializeSystem() {
                 showConfirmButton: false
             });
             return false; // Stop the initialization if cancelled
-        }
+        }*/
 
         // Start wheels control
         sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.WHEELS}`);
@@ -560,7 +560,7 @@ export async function initializeSystem() {
         await new Promise(r => setTimeout(r, 2000));
         
         
-        const movementInitialized = await checkMovementController(ws);
+        const movementInitialized = await checkMovementController();
         if (!movementInitialized) return false;       
 
         return true;

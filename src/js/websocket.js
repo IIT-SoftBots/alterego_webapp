@@ -2,9 +2,9 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process'); // Importa exec
+const { exec } = require('child_process');
 
-// In-memory state storage con aggiunta di UI state
+// In-memory state storage with add of UI state
 let pageState = {
     isPowered: false,
     isRunning: false,
@@ -16,7 +16,7 @@ let pageState = {
 };
 
 const stateFile = path.join(__dirname, 'state.json');
-console.log("📁 Stato salvato in:", stateFile);
+console.log("📁 State saved in:", stateFile);
 if (fs.existsSync(stateFile)) {
     try {
         pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
@@ -29,7 +29,7 @@ if (fs.existsSync(stateFile)) {
 const wss = new WebSocket.Server({ noServer: true });
 
 wss.on('connection', (ws) => {
-    console.log("🔗 Nuovo client connesso");
+    console.log("🔗 New client connected");
     
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ 
@@ -44,7 +44,7 @@ wss.on('connection', (ws) => {
             
             switch(data.type) {
                 case 'requestInitialState':
-                    // Invia immediatamente lo stato corrente al nuovo client
+                    // Immediately send the current state to the client
                     ws.send(JSON.stringify({ 
                         type: 'stateUpdate', 
                         data: pageState 
@@ -97,10 +97,10 @@ wss.on('connection', (ws) => {
                             activePopup: null
                         }
                     };
-                    broadcastState();  // Assicurati che lo stato venga propagato
+                    broadcastState();  // Assure broadcast after closing popup
                     break;
                 case 'closeApp':
-                    // Esegui il comando per chiudere la finestra del browser
+                    // Executes the command to close Firefox
                     exec('pkill -f firefox', (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Error closing Firefox: ${error}`);
@@ -108,7 +108,7 @@ wss.on('connection', (ws) => {
                             console.log('Firefox closed successfully');
                         }
                 
-                        // Esegui il comando per chiudere il processo sulla porta 3000
+                        // Executes the command to close the process on port 3000
                         exec('lsof -t -i :3000 | xargs kill -9', (error, stdout, stderr) => {
                             if (error) {
                                 console.error(`Error closing process on port 3000: ${error}`);
@@ -122,12 +122,12 @@ wss.on('connection', (ws) => {
             
             broadcastState();
         } catch (error) {
-            console.error("❌ Errore parsing WebSocket message:", error);
+            console.error("❌ Error parsing WebSocket message:", error);
         }
     });
 
     ws.on('close', () => {
-        console.log("❌ Client disconnesso");
+        console.log("❌ Client disconnected");
     });
 });
 

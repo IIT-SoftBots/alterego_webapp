@@ -80,7 +80,7 @@ alterego-webapp
       ```
    - Open a terminal window and modify permissions to allow execution of the script with the command
       ```
-      sudo chmod 667 start-alterego-webapp.sh
+      chmod 775 start-alterego-webapp.sh
       ```
 
 7. Create startup file
