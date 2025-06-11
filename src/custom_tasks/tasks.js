@@ -129,9 +129,9 @@ function updateTaskButtonsState() {
     const disableTasksCondition = state.pipelineState !== STATE.WORK_MODE && state.pipelineState !== STATE.PAUSED;
 
     const taskButtons = document.querySelectorAll('#customTasksContainer .task-button');
-    // taskButtons.forEach(button => {
-    //     button.disabled = disableTasksCondition;
-    // });
+    taskButtons.forEach(button => {
+        button.disabled = disableTasksCondition;
+    });
 
     // Popup logic based on pipelineState
     if (state.pipelineState === STATE.WORK_MODE){
@@ -154,14 +154,14 @@ function updateTaskButtonsState() {
         }
         // Avoid to show the popup if it is already visible
         if (!Swal.isVisible() || !Swal.getConfirmButton()?.hasAttribute('listenerAttached')) { // Heuristica per popup di task
-    /*         showLocalPopup({
+             showLocalPopup({
                 title: 'Warning',
                 text: popupText,
                 icon: 'warning',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,                
-            });*/
+            });
         }
     }
 
@@ -192,15 +192,15 @@ function showLocalPopup(popupData) {
     });
 }
 
-// Assicurati che il DOM sia pronto prima di tentare di renderizzare i bottoni
-// se `ws.onopen` non è sufficientemente tardivo.
-// In alternativa, chiama initializeConfig e renderCustomTaskButtons
-// all'interno di un evento DOMContentLoaded se ws si connette molto presto.
+// Assures the DOM is ready before rendering buttons
+// if 'ws.onopen' is not sufficiently delayed.
+// Alternatively, you can call `initializeConfig` and `renderCustomTaskButtons`
+// within a DOMContentLoaded event if `ws` connects very early.
 // document.addEventListener('DOMContentLoaded', () => {
-//    if (ws.readyState === WebSocket.OPEN) { // Se ws è già aperto
-//        (async () => {
-//            await initializeConfig();
-//            renderCustomTaskButtons();
-//        })();
-//    }
+//     if (ws.readyState === WebSocket.OPEN) { // If ws is already open
+//         (async () => {
+//             await initializeConfig();
+//             renderCustomTaskButtons();
+//         })();
+//     }
 // });

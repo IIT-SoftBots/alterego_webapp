@@ -12,7 +12,7 @@ export let ROS_HOSTNAME_LOCAL = `export ROS_HOSTNAME=${NUC_VISION_IP}`;
 
 export const ROS_CATKIN_WS = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_v2';  // Default: '/src'
-export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_v2/catkin_ws';  // Default: '~/catkin_ws'
+export const ROS_CATKIN_WS_LOCAL = '~/catkin_ws';  // Default: '~/catkin_ws'
 
 // export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same const in webapp.js
 // export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
@@ -202,6 +202,38 @@ export const UI_STATES = {
         text: 'Battery: '
     }
 };   
+
+// Robot configuration variables - they will be updated by loadAndApplySettings
+export let CONF_FEATURES = {
+    enableFaceRecognition: {
+        value: false,
+        label: 'Face Recognition'
+    },
+    enableFaceTracking: {
+        value: false,
+        label: 'Face Tracking'
+    },
+    enableAudio: {
+        value: false,
+        label: 'Audio'
+    },
+    enableVideo: {
+        value: false,
+        label: 'Video'
+    },
+    enableNavigation: {
+        value: false,
+        label: 'Navigation (ROS Nodes)'
+    },
+    enableAutoNavigation: {
+        value: false,
+        label: 'Autonomous Navigation (Target-DockStation)'
+    },
+    enableRobotBreath: {
+        value: false,
+        label: 'Robot Breath'
+    },
+};
 
 // Initialize launch commands with default version
 updateLaunchCommands();

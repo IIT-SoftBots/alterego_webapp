@@ -4,7 +4,6 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
-const yaml = require('js-yaml');
 const os = require('os'); // Add os module to get system information
 const proxy = require('express-http-proxy'); // Importa express-http-proxy
 
@@ -445,68 +444,4 @@ appTasks.post('/custom-task', (req, res) => {
 
 appTasks.listen(portTasks, () => {
     console.log(`Custom server running at http://localhost:${portTasks}`);
-});
-
-// -------------- Configuration Features ------------------
-const CONFIGURATION_FILE_PATH = path.join(__dirname, 'config', 'robot_webapp_configuration.yaml');
-// Costruisci DEFAULT_FEATURES basandoti sui valori di CONF_FEATURES da constants.js
-const DEFAULT_FEATURES = {};
-for (const key in CONF_FEATURES) {
-    if (Object.hasOwnProperty.call(CONF_FEATURES, key) && CONF_FEATURES[key] && typeof CONF_FEATURES[key].value !== 'undefined') {
-        DEFAULT_FEATURES[key] = CONF_FEATURES[key].value;
-    } else {
-        // Fallback nel caso la struttura non sia come previsto o value sia undefined
-        console.warn(`Chiave "${key}" in CONF_FEATURES non ha una proprietà 'value' definita o la struttura è inattesa. Impostazione a false di default.`);
-        DEFAULT_FEATURES[key] = false;
-    }
-}
-function readFeatures() {
-    if (fs.existsSync(CONFIGURATION_FILE_PATH)) {
-        try {
-            const fileContents = fs.readFileSync(CONFIGURATION_FILE_PATH, 'utf8');
-            const loadedFeatures = yaml.load(fileContents);
-            // Assicura che tutte le chiavi di default siano presenti
-            // e che i valori caricati sovrascrivano i default solo se presenti nel file
-            const mergedFeatures = { ...DEFAULT_FEATURES };
-            for (const key in loadedFeatures) {
-                if (Object.hasOwnProperty.call(loadedFeatures, key) && Object.hasOwnProperty.call(mergedFeatures, key)) {
-                    mergedFeatures[key] = loadedFeatures[key];
-                }
-            }
-            return mergedFeatures;
-        } catch (error) {
-            console.error('Error reading or parsing features file, using defaults:', error);
-            return { ...DEFAULT_FEATURES };
-        }
-    }
-    return { ...DEFAULT_FEATURES};
-}
-
-function writeFeatures(features) {
-    try {
-        const dir = path.dirname(CONFIGURATION_FILE_PATH);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        const yamlStr = yaml.dump(features);
-        fs.writeFileSync(CONFIGURATION_FILE_PATH, yamlStr, 'utf8');
-        console.log('Features saved to:', CONFIGURATION_FILE_PATH);
-    } catch (error) {
-        console.error('Error writing features file:', error);
-    }
-}
-
-// API route to get features
-app.get('/api/features', (req, res) => {
-    const features = readFeatures();
-    res.json(features);
-});
-
-// API route to update features
-app.post('/api/features', (req, res) => {
-    const newFeatures = req.body;
-    // Basic validation: ensure all default keys are present if partial update is not desired
-    const updatedFeatures = { ...readFeatures(), ...newFeatures };
-    writeFeatures(updatedFeatures);
-    res.json({ success: true, message: 'Features updated successfully.', features: updatedFeatures });
 });
