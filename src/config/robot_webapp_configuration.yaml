@@ -1,0 +1,8 @@
+enableFaceRecognition: false
+enableFaceTracking: false
+enableVideoStream: true
+enableAudioStream: true
+enableNavigation: false
+enableAutoNavigation: false
+enableRobotBreath: true
+enableAutoSpeech: false

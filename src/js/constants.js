@@ -4,25 +4,22 @@ export let AlterEgoVersion = 2;
 export let RobotName = 'robot_alterego';
 export let NUC_BASE_IP = '192.168.88.110';  
 export let NUC_VISION_IP = '192.168.88.111';  
+export let PILOT_IP = '192.168.88.112';
 export let ROS_MASTER_URI = `export ROS_MASTER_URI=http://${NUC_BASE_IP}:11311`;
 export let ROS_IP = `export ROS_IP=${NUC_BASE_IP}`;
 export let ROS_HOSTNAME = `export ROS_HOSTNAME=${NUC_BASE_IP}`;
 export let ROS_IP_LOCAL = `export ROS_IP=${NUC_VISION_IP}`;
 export let ROS_HOSTNAME_LOCAL = `export ROS_HOSTNAME=${NUC_VISION_IP}`;
 
+// Robot configuration constants
+export let RobotHasKickstand = false;
+export let RobotHasFallback = false;
+export let RobotHasFaceExpressions = false;
+
 export const ROS_CATKIN_WS = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_v2';  // Default: '/src'
 export const ROS_CATKIN_WS_LOCAL = '~/catkin_ws';  // Default: '~/catkin_ws'
-
-// export const NUC_BASE_IP    = '192.168.0.110';      // Check and modify same const in webapp.js
-// export const ROS_CATKIN_WS  = '~/catkin_ws';  // Default: '~/catkin_ws'
-// export const ROS_SRC_FOLDER = '/src/AlterEGO_Adriano';  // Default: '/src'
-// export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_Adriano/catkin_ws';  // Default: '~/catkin_ws'
-// export const ROS_MASTER_URI = 'export ROS_MASTER_URI=http://192.168.0.110:11311';  // Default: 'export ROS_MASTER_URI=http://localhost:11311'
-// export const ROS_IP         = 'export ROS_IP=192.168.0.110'
-// export const ROS_HOSTNAME   = 'export ROS_HOSTNAME=192.168.0.110'
-// export const ROS_IP_LOCAL         = 'export ROS_IP=192.168.0.111'
-// export const ROS_HOSTNAME_LOCAL   = 'export ROS_HOSTNAME=192.168.0.111'
+export const EGO_GUI_FOLDER_LOCAL = '~/AlterEGO_v2/EGO_GUI';  // Default: '~/AlterEGO_v2/EGO_GUI'
 
 export let ROS_COMMANDS = {
     SETUP: ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash',
@@ -57,12 +54,94 @@ export async function initializeConfig() {
             ROS_COMMANDS.SETUP = ROS_MASTER_URI + ' && ' + ROS_IP + ' && ' + ROS_HOSTNAME + ' && source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS + '/devel/setup.bash' + ' && export ROBOT_NAME=' + RobotName;
             ROS_COMMANDS.SETUP_LOCAL = ROS_MASTER_URI + ' && ' + ROS_IP_LOCAL + ' && ' + ROS_HOSTNAME_LOCAL + ' &&  source /opt/ros/noetic/setup.bash && source ' + ROS_CATKIN_WS_LOCAL + '/devel/setup.bash' + ' && export ROBOT_NAME=' + RobotName;
             
+            // Retrieve Pilot IP
+            await retrievePilotIP();
+
             // Aggiorna i comandi di lancio DOPO aver aggiornato AlterEgoVersion
             updateLaunchCommands();            
-            console.log(`Config initialized with NUC_BASE_IP: ${NUC_BASE_IP}, NUC_VISION_IP: ${NUC_VISION_IP}`);
+            console.log(`Config initialized with NUC_BASE_IP: ${NUC_BASE_IP}, NUC_VISION_IP: ${NUC_VISION_IP}, PILOT_IP: ${PILOT_IP}`);
         }
     } catch (error) {
         console.error('Failed to initialize config:', error);
+    }
+}
+
+async function retrievePilotIP() {
+
+    // Get Pilot IP from robots_database.conf on vision NUC
+    try {
+        const catCommand = `cat ` + EGO_GUI_FOLDER_LOCAL + `/config/robots_database.conf`;
+        const response = await fetch('/grep-command-local', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                command: catCommand
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !data.output || data.output == null) {
+            throw new Error(`No data read from robots_database.conf`);
+        } else {
+            const matchPilotIP = data.output.match(/IP_PILOT\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)"/i);
+            if (matchPilotIP && matchPilotIP[1]) {
+                PILOT_IP = matchPilotIP[1];
+            } else {
+                console.warn('Pilot IP not found in robots_database.conf');
+            }
+        }
+    } catch (error) {
+        console.error('Error retrieving robots database:', error);
+    }
+}
+
+export async function retrieveRobotConfig() {
+
+    // Get robot configuration from robot_configuration.yaml on base NUC
+    try {
+        const catCommand = `cat ` + ROS_CATKIN_WS + ROS_SRC_FOLDER + `/alterego_robot/config/robot_configuration.yaml`;
+        const response = await fetch('/grep-command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                command: catCommand
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !data.output || data.output == null) {
+            throw new Error(`No data read from robot_configuration.yaml`);
+            //return null;
+        }
+        else {
+            const matchHKS = data.output.match(/has_kickstand:\s*(true|false)/i);
+            const matchHFB = data.output.match(/has_fallback:\s*(true|false)/i);
+            const matchHFE = data.output.match(/has_face_expression:\s*(true|false)/i);
+            if (!matchHKS || !matchHFB || !matchHFE) {
+                console.warn('Could not parse values from robot configuration:', data.output);
+                return null;
+            }                            
+            
+            RobotHasKickstand = matchHKS ? (matchHKS[1].toLowerCase() === 'true') : false;
+            RobotHasFallback = matchHFB ? (matchHFB[1].toLowerCase() === 'true') : false;
+            RobotHasFaceExpressions = matchHFE ? (matchHFE[1].toLowerCase() === 'true') : false;
+
+            console.log(`Robot configuration - hasKickstand: ${RobotHasKickstand}`);
+            console.log(`Robot configuration - hasFallback: ${RobotHasFallback}`);
+            console.log(`Robot configuration - hasFaceExpression: ${RobotHasFaceExpressions}`);
+        }
+    } catch (error) {
+        console.error('Error retrieving robot configuration:', error);
     }
 }
 
@@ -74,9 +153,10 @@ export const STATE = {
     STAND_UP:                   2,
     WORK_MODE:                  3,
     PAUSED:                     4,
-    DOCKED:                     5,
-    RECOVERY_FROM_EMERGENCY:    6,
-    POWER_OFF_NUCS:             7
+    STOPPING:                   5,
+    STOPPED:                    6,
+    RECOVERY_FROM_EMERGENCY:    7,
+    POWER_OFF_NUCS:             8
 };
 
 // Launch commands for different ROS nodes - inizialmente vuoti
@@ -115,13 +195,35 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
     LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play.launch';
-    
     // Additional constants
     LAUNCH_COMMANDS.TARGET_LOC = `rostopic pub -1 /${RobotName}/target_location std_msgs/String "data: 'Mostra1'"`;
     LAUNCH_COMMANDS.DOCK_STATION = `rostopic pub -1 /${RobotName}/target_location std_msgs/String "data: 'DockStation'"`;    
     LAUNCH_COMMANDS.ADJUST_DOCKING = `/${RobotName}/adjust_docking`;
     LAUNCH_COMMANDS.STOP_BREATH = `/${RobotName}/rosbag_play`;
+
+    // Video and Audio Stream Commands
+    LAUNCH_COMMANDS.VIDEO_STREAM = {
+        START: `cd ${EGO_GUI_FOLDER_LOCAL} && ./AV_com_Oculus.sh ${PILOT_IP} video`,
+        STOP: 'wmctrl -c send_video',
+        CHECK: `wmctrl -l | grep send_video`,
+        MOVE_BG: `wmctrl -r send_video -b add,hidden && wmctrl -r send_video -b add,below`
+    };
+    LAUNCH_COMMANDS.AUDIO_STREAM = {
+        START: `cd ${EGO_GUI_FOLDER_LOCAL} && ./AV_com_Oculus.sh ${PILOT_IP} audio`,
+        STOP: 'wmctrl -c send_audio && wmctrl -c receive_audio',
+        CHECK_SEND: `wmctrl -l | grep send_audio`,
+        CHECK_RECV: `wmctrl -l | grep receive_audio`,
+        MOVE_SEND_BG: `wmctrl -r send_audio -b add,hidden && wmctrl -r send_audio -b add,below`,
+        MOVE_RECV_BG: `wmctrl -r receive_audio -b add,hidden && wmctrl -r receive_audio -b add,below`
+    };
     
+    // Stop Wheels Nodes
+    LAUNCH_COMMANDS.STOP_WHEELS = {
+        LQR: `/${RobotName}/wheels/lqr`,
+        ERROR_HANDLER: `/${RobotName}/wheels/error_handler`,
+        QB_INTERFACE: `/${RobotName}/wheels/qb_interface_node`,
+    };
+
     // Stop Body Movement Nodes
     LAUNCH_COMMANDS.STOP_PILOT = {
         R_CTRL: `/${RobotName}/right/arms_compliant_control_node`,
@@ -202,6 +304,42 @@ export const UI_STATES = {
         text: 'Battery: '
     }
 };   
+
+// Robot configuration variables - they will be updated by loadAndApplySettings
+export let CONF_FEATURES = {
+    enableFaceRecognition: {
+        value: false,
+        label: 'Face Recognition'
+    },
+    enableFaceTracking: {
+        value: false,
+        label: 'Face Tracking'
+    },
+    enableVideoStream: {
+        value: false,
+        label: 'Pilot Video'
+    },
+    enableAudioStream: {
+        value: false,
+        label: 'Pilot Audio'
+    },
+    enableNavigation: {
+        value: false,
+        label: 'Navigation (ROS Nodes)'
+    },
+    enableAutoNavigation: {
+        value: false,
+        label: 'Autonomous Navigation (Target-DockStation)'
+    },
+    enableRobotBreath: {
+        value: false,
+        label: 'Robot Breath'
+    },
+    enableAutoSpeech: {
+        value: false,
+        label: 'Autonomous Speech'
+    },
+};
 
 // Initialize launch commands with default version
 updateLaunchCommands();

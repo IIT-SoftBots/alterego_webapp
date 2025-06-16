@@ -1,6 +1,6 @@
-import { sendCommand,sendLocalCommand, initializeIMU, handleDockingMovement, initializeSystem, waitForPowerAlertTrigger, showSyncedPopup, targetReachedCheck, checkNodeStatus, pingRemoteComputer} from './api.js';
+import { sendCommand,sendLocalCommand, initializeIMU, handleDockingMovement, initializeSystem, waitForPowerAlertTrigger, showSyncedPopup, targetReachedCheck, checkNodeStatus, pingRemoteComputer } from './api.js';
 import { batteryMonitor } from './batterymonitor.js';
-import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE } from './constants.js';
+import { ROS_COMMANDS, LAUNCH_COMMANDS, STATE, RobotHasKickstand, RobotHasFaceExpressions, CONF_FEATURES } from './constants.js';
 import { state, ws } from './main.js';
 import { showLoading, updateUI } from './utils.js';
 
@@ -46,7 +46,7 @@ async function startPowerMonitor(){
 
                         // Send Home to Charge
                         batteryMonitor.setShouldAutoRestart(true);
-                        robotHomeClick();                        
+                        robotStopClick();                        
                         state.isRunning = false;
 
                         ws.send(JSON.stringify({
@@ -57,7 +57,7 @@ async function startPowerMonitor(){
                         updateUI();
                     }
 
-                    if (fsmState == STATE.DOCKED && !batteryMonitor.getNeedCharge() && batteryMonitor.getShouldAutoRestart()){
+                    if (fsmState == STATE.STOPPED && !batteryMonitor.getNeedCharge() && batteryMonitor.getShouldAutoRestart()){
                         // Triggered when need_for_charge = false
     
                         endChargeProcedures();
@@ -73,7 +73,7 @@ async function startPowerMonitor(){
                         console.log("Emergency Button Pressed to remove power");
                         
                         if (fsmState != STATE.INIT &&
-                            fsmState != STATE.DOCKED &&
+                            fsmState != STATE.STOPPED &&
                             fsmState != STATE.RECOVERY_FROM_EMERGENCY){
                             // Emergency Button must deactivate the robot that is working
                             emergencyButtonPressed();
@@ -125,12 +125,15 @@ async function stopRobot() {
 }
 
 async function deactivateRobot() {
-
+   
     stopPowerMonitor(); // Need max. 1500 ms to close
 
     // Kill everything
     sendCommand(ROS_COMMANDS.CLEANUP);
-    
+
+    // Stop Media Services
+    stopMediaServices();
+
     // Popup - Wait nodes have been killed
     await showSyncedPopup({
         title: 'Stop Robot',
@@ -159,6 +162,7 @@ async function checkForPowerOn(){
 }
 
 export async function activateRobotProcedures() {
+
     sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.ROSCORE}`);
     await new Promise(r => setTimeout(r, 2000));
     sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.USB_DETECTOR}`);
@@ -186,9 +190,11 @@ export async function activateRobotProcedures() {
     }
 
     // Docking Backward
-    const backwardComplete =  await handleDockingMovement("backward", 0.5);
-    if (!backwardComplete) {
-        return false;
+    if (RobotHasKickstand){
+        const backwardComplete =  await handleDockingMovement("backward", 0.5);
+        if (!backwardComplete) {
+            return false;
+        }
     }
 
     return true;
@@ -208,35 +214,47 @@ export async function standUpProcedures() {
     sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.PILOT}`);
 
     // Start FACE EXPRESSION
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+    if (RobotHasFaceExpressions) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_EXPRESSION}`);
+    }
 
-    // Start FACE TRACKING and FACE RECOGNITION
+    // Start FACE RECOGNITION
+    if (CONF_FEATURES.enableFaceRecognition.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // Start FACE TRACKING
+    if (CONF_FEATURES.enableFaceTracking.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Start Audio Services
-    startAudio();
+    // Start Media Services
+    await startMediaServices();
 
     // Start Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BREATH}`);
-    await new Promise(r => setTimeout(r, 2000));
+    if (CONF_FEATURES.enableRobotBreath.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BREATH}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
     // Start Navigation
-    // sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION}`);
-    // await new Promise(r => setTimeout(r, 2000));
+    if (CONF_FEATURES.enableNavigation.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
     // Send to Target Location
-    // sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.TARGET_LOC}`);
-    // await new Promise(r => setTimeout(r, 4000));
+    if (CONF_FEATURES.enableAutoNavigation.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.TARGET_LOC}`);
+        await new Promise(r => setTimeout(r, 4000));
+    }
 
     return true;
 }
 
-export async function startAudio() {
+export async function startAutonomousSpeech() {
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && ${LAUNCH_COMMANDS.STT}`);
     await new Promise(r => setTimeout(r, 2000));
 
@@ -246,7 +264,7 @@ export async function startAudio() {
     return true;
 }
 
-export async function stopAudio(){
+export async function stopAutonomousSpeech(){
     
     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && rosnode kill ${LAUNCH_COMMANDS.STOP_TTS}`);
     await new Promise(r => setTimeout(r, 2000));
@@ -255,6 +273,270 @@ export async function stopAudio(){
     await new Promise(r => setTimeout(r, 2000));
 
     return true;
+}
+
+export async function startVideoStream(){
+    const MAX_ATTEMPTS = 3;
+    let attempts = 0;
+    let streamStarted = false;
+
+    const loadingPopup = Swal.fire({
+        title: 'Activating video stream...',
+        text: 'Please wait while the video stream is being configured.',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    while (attempts < MAX_ATTEMPTS && !streamStarted) {
+        attempts++;
+        //console.log(`Attempt ${attempts} to start video stream.`);
+
+        sendLocalCommand(`${LAUNCH_COMMANDS.VIDEO_STREAM.START}`);
+        await new Promise(r => setTimeout(r, 3000)); 
+
+        let windowExists = false;
+        try {
+            const response = await fetch('/grep-command-local', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    command: `${LAUNCH_COMMANDS.VIDEO_STREAM.CHECK}`
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const grepResponse = await response.json();
+            
+            if (grepResponse && grepResponse.output && typeof grepResponse.output === 'string' && grepResponse.output.trim() !== '') {
+                //console.log("Video stream window 'send_video' found via grep. Output:", grepResponse.output);
+                windowExists = true;
+            } else if (grepResponse && grepResponse.error) {
+                console.error("Error from grepLocalCommand:", grepResponse.error);
+                windowExists = false;
+            }
+            else {
+                console.log("Video stream window 'send_video' NOT found after start command (grep output was empty).");
+                windowExists = false;
+            }
+        } catch (error) {
+            console.error("Unexpected error checking video stream window:", error);
+            windowExists = false;
+        }
+
+        if (windowExists) {
+            sendLocalCommand(`${LAUNCH_COMMANDS.VIDEO_STREAM.MOVE_BG}`);
+            await new Promise(r => setTimeout(r, 1000)); 
+            streamStarted = true;
+        } else {
+            console.log(`Video stream window not found after attempt ${attempts}.`);
+            if (attempts < MAX_ATTEMPTS) {
+                sendLocalCommand(`${LAUNCH_COMMANDS.VIDEO_STREAM.STOP}`);
+                await new Promise(r => setTimeout(r, 1000));
+                console.log("Retrying...");
+            }
+        }
+    }
+
+    Swal.close(loadingPopup); 
+
+    if (streamStarted) {
+        await showSyncedPopup({ 
+            title: 'Video Stream Active!',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        return true;
+    } else {
+        await showSyncedPopup({ 
+            title: 'Video Stream Failed',
+            text: `Could not start the video stream after ${MAX_ATTEMPTS} attempts.`,
+            icon: 'error',
+            showConfirmButton: true
+        });
+        return false;
+    }
+}
+
+export async function stopVideoStream(){
+    sendLocalCommand(`${LAUNCH_COMMANDS.VIDEO_STREAM.STOP}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    return true;
+}
+
+export async function startAudioStream(){
+    const MAX_ATTEMPTS = 3;
+    let attempts = 0;
+    let sendStreamStarted = false;
+    let recvStreamStarted = false;
+
+    const loadingPopup = Swal.fire({
+        title: 'Activating audio streams...',
+        text: 'Please wait while the audio streams are being configured.',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    while (attempts < MAX_ATTEMPTS && (!sendStreamStarted || !recvStreamStarted)) {
+        attempts++;
+        //console.log(`Attempt ${attempts} to start audio streams.`);
+
+        sendLocalCommand(`${LAUNCH_COMMANDS.AUDIO_STREAM.START}`);
+        await new Promise(r => setTimeout(r, 4000));
+
+        if (!sendStreamStarted) {
+            let sendWindowExists = false;
+            try {
+                const grepSendResponse = await fetch('/grep-command-local', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: `${LAUNCH_COMMANDS.AUDIO_STREAM.CHECK_SEND}` })
+                });
+                if (!grepSendResponse.ok) throw new Error(`HTTP error for send_audio check! status: ${grepSendResponse.status}`);
+                const sendResult = await grepSendResponse.json();
+
+                if (sendResult && sendResult.output && typeof sendResult.output === 'string' && sendResult.output.trim() !== '') {
+                    //console.log("Audio stream window 'send_audio' found.");
+                    sendWindowExists = true;
+                } else if (sendResult && sendResult.error) {
+                    console.error("Error from grepLocalCommand for send_audio:", sendResult.error);
+                } else {
+                    console.log("Audio stream window 'send_audio' NOT found.");
+                }
+            } catch (error) {
+                console.error("Unexpected error checking 'send_audio' window:", error);
+            }
+
+            if (sendWindowExists) {
+                //console.log("'send_audio' window found. Moving to background.");
+                sendLocalCommand(`${LAUNCH_COMMANDS.AUDIO_STREAM.MOVE_SEND_BG}`);
+                await new Promise(r => setTimeout(r, 500));
+                sendStreamStarted = true;
+            } else {
+                console.log(`'send_audio' window not found after attempt ${attempts}.`);
+            }
+        }
+
+        if (!recvStreamStarted) {
+            let recvWindowExists = false;
+            try {
+                const grepRecvResponse = await fetch('/grep-command-local', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: `${LAUNCH_COMMANDS.AUDIO_STREAM.CHECK_RECV}` })
+                });
+                if (!grepRecvResponse.ok) throw new Error(`HTTP error for recv_audio check! status: ${grepRecvResponse.status}`);
+                const recvResult = await grepRecvResponse.json();
+
+                if (recvResult && recvResult.output && typeof recvResult.output === 'string' && recvResult.output.trim() !== '') {
+                    //console.log("Audio stream window 'recv_audio' found.");
+                    recvWindowExists = true;
+                } else if (recvResult && recvResult.error) {
+                    console.error("Error from grepLocalCommand for recv_audio:", recvResult.error);
+                } else {
+                    console.log("Audio stream window 'recv_audio' NOT found.");
+                }
+            } catch (error) {
+                console.error("Unexpected error checking 'recv_audio' window:", error);
+            }
+
+            if (recvWindowExists) {
+                //console.log("'recv_audio' window found. Moving to background.");
+                sendLocalCommand(`${LAUNCH_COMMANDS.AUDIO_STREAM.MOVE_RECV_BG}`);
+                await new Promise(r => setTimeout(r, 500));
+                recvStreamStarted = true;
+            } else {
+                console.log(`'recv_audio' window not found after attempt ${attempts}.`);
+            }
+        }
+
+        if ((!sendStreamStarted || !recvStreamStarted) && attempts < MAX_ATTEMPTS) {
+            console.log("One or both audio stream windows not found. Retrying...");
+            sendLocalCommand(`${LAUNCH_COMMANDS.AUDIO_STREAM.STOP}`);
+            await new Promise(r => setTimeout(r, 1000));
+        }
+    }
+
+    Swal.close(loadingPopup);
+
+    if (sendStreamStarted && recvStreamStarted) {
+        await showSyncedPopup({
+            title: 'Audio Streams Active!',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        return true;
+    } else {
+        let failedStreams = [];
+        if (!sendStreamStarted) failedStreams.push("'send_audio'");
+        if (!recvStreamStarted) failedStreams.push("'recv_audio'");
+        
+        await showSyncedPopup({
+            title: 'Audio Stream Failed',
+            text: `Could not start ${failedStreams.join(' and ')} after ${MAX_ATTEMPTS} attempts.`,
+            icon: 'error',
+            showConfirmButton: true
+        });
+        return false;
+    }
+}
+
+export async function stopAudioStream(){
+    sendLocalCommand(`${LAUNCH_COMMANDS.AUDIO_STREAM.STOP}`);
+    await new Promise(r => setTimeout(r, 2000));
+
+    return true;
+}
+
+export async function startMediaServices() {
+    
+    // Start Video Stream
+    if (CONF_FEATURES.enableVideoStream.value){
+        await startVideoStream();
+    }
+
+    // Start Audio Services
+    if (CONF_FEATURES.enableAudioStream.value){
+        await startAudioStream();
+    }
+    if (CONF_FEATURES.enableAutoSpeech.value){
+        await startAutonomousSpeech();
+    }
+}
+
+export async function stopMediaServices() {
+
+    // Stop Video Stream
+    if (CONF_FEATURES.enableVideoStream.value){
+        await stopVideoStream();
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
+    // Stop Audio Services
+    if (CONF_FEATURES.enableAudioStream.value){
+        await stopAudioStream();
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    if (CONF_FEATURES.enableAutoSpeech.value){
+        await stopAutonomousSpeech();
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
 }
 
 export async function stopRobotMovement(){
@@ -273,49 +555,81 @@ export async function stopRobotMovement(){
     await new Promise(r => setTimeout(r, 3000));
     
     // Stop Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_BREATH}`);
-    await new Promise(r => setTimeout(r, 3000));
-
-    // Stop Audio Services
-    stopAudio();
-    await new Promise(r => setTimeout(r, 3000));
+    if (CONF_FEATURES.enableRobotBreath.value) {
+        // Stop Breath Rosbag
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_BREATH}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
 
     // Stop Additional Nodes
-    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
-    await new Promise(r => setTimeout(r, 3000));
-  
+    if (RobotHasFaceExpressions){
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_EXPRESSION}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
     // Stop Navigation
-    // sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
-    // await new Promise(r => setTimeout(r, 4000));
+    if (CONF_FEATURES.enableNavigation.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
+        await new Promise(r => setTimeout(r, 4000));
+    }
+
+    return true;
+}
+
+export async function stopRobotWheels() {
+    // Stop Wheels Control (used when no kickstand is present)
+
+    const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
+        title: 'Deactivating Wheels',
+        text: 'Pay attention!! Be prepared to prevent robot from falling and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
+        icon: 'warning',
+        showConfirmButton: true, // Show confirm button
+        confirmButtonText: 'OK', // Set confirm button text
+        allowOutsideClick: false, // Prevent closing by clicking outside
+        allowEscapeKey: false, // Prevent closing with ESC key
+        showCancelButton: false // Ensure no cancel button is shown
+    });       
+
+    // Check if the user confirmed
+    if (!confirmWheels) {
+        console.log('Wheel deactivation cancelled by user.');
+        // Optionally, show another popup or handle cancellation
+        await showSyncedPopup({
+            title: 'Cancelled',
+            text: 'Wheel deactivation was cancelled.',
+            icon: 'info',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        return false; // Stop the deactivation if cancelled
+    }
+
+    // Stop Wheels
+    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_WHEELS.LQR} ${LAUNCH_COMMANDS.STOP_WHEELS.ERROR_HANDLER} ${LAUNCH_COMMANDS.STOP_WHEELS.QB_INTERFACE}`);
+    await new Promise(r => setTimeout(r, 3000));
 
     return true;
 }
 
 export async function goHomeProcedures() {
 
-    // Send Home
-
-    // Stop Face Tracking and Recognition (to do before adjust docking)
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 3000));
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 3000));
-
     
-    // Navigation from current position to home room
-    // sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.DOCK_STATION}`);  // Doubled to be sure
-    // await new Promise(r => setTimeout(r, 4000));
+    // Send Home
+    
+    // Navigation from current position to home room    
+    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.DOCK_STATION}`);
+    await new Promise(r => setTimeout(r, 4000));
 
     // sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && ${LAUNCH_COMMANDS.SAY_MOVE_OVER}`);
     // await new Promise(r => setTimeout(r, 1000));
 
     // Alignment to charging station within fwdDistance distance (in meters)
-    // var targetReached = false;
-    // do {
-    //     targetReached = await targetReachedCheck();
-    //     await new Promise(r => setTimeout(r, 2000));
-    // }
-    // while (!targetReached);
+    var targetReached = false;
+    do {
+        targetReached = await targetReachedCheck();
+        await new Promise(r => setTimeout(r, 2000));
+    }
+    while (!targetReached);
 /*
     var approachActive = true;
     do {
@@ -323,7 +637,6 @@ export async function goHomeProcedures() {
         await new Promise(r => setTimeout(r, 2000));
     } while(approachActive);
 */    
-
     var fwdDistance = 0.0;      // Override previous valutation
     
     return fwdDistance;
@@ -401,35 +714,82 @@ export async function robotPowerOffClick() {
     return true;
 }
 
-export async function robotHomeClick() {
+export async function robotStopClick() {
 
     showLoading(true);
 
-    // Send Home
-    const fwdDistance = await goHomeProcedures();
+    // Notify next workflow state
+    updatePipelineState(STATE.STOPPING);
 
-    // Dock to charging station
-    dockingProcedures(fwdDistance);
+    // Stop Face Tracking and Recognition (to do before adjust docking)
+    if (CONF_FEATURES.enableFaceRecognition.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    if (CONF_FEATURES.enableFaceTracking.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
+    // Send Home
+    var fwdDistance = 0.0; // Default value
+    if (CONF_FEATURES.enableAutoNavigation.value){
+        fwdDistance = await goHomeProcedures();
+    }
+
+     
+    // Stop Media Services
+    await stopMediaServices();
+
+    // Kill all movement
+    stopRobotMovement();
+
+    if (RobotHasKickstand){   
+        // Prepare to docking Forward
+        dockingProcedures(fwdDistance);
+    }
+    else {
+        // If no kickstand, just wait for the user to confirm wheels stop
+        const stopWheels = await stopRobotWheels();
+        if (!stopWheels) {
+            return false;
+        }
+    }
+
+    // Notify next workflow state
+    updatePipelineState(STATE.STOPPED);
 
     showLoading(false);
 
+    return true;
 }
 
 export async function restartFromPauseProcedures() {
 
     showLoading(true);
 
-    // Start FACE RECOGNITION and TRACKING
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 2000));
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // Start FACE RECOGNITION
+    if (CONF_FEATURES.enableFaceRecognition.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_RECOGNITION}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
-    // Start Audio Services
-    startAudio();
+    // Start FACE TRACKING
+    if (CONF_FEATURES.enableFaceTracking.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.FACE_TRACKING}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // Start Autonomous Speech
+    if (CONF_FEATURES.enableAutoSpeech.value){
+        startAutonomousSpeech();
+    }
 
     // Start Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BREATH}`);
+    if (CONF_FEATURES.enableRobotBreath.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.BREATH}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
 
     // Notify next workflow state
     updatePipelineState(STATE.WORK_MODE);
@@ -443,20 +803,26 @@ export async function pauseProcedures() {
 
     showLoading(true);
 
-    // Stop Face Recognition
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
-    await new Promise(r => setTimeout(r, 2000));
+    // Stop Face Tracking and Recognition (to do before adjust docking)
+    if (CONF_FEATURES.enableFaceRecognition.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_RECOGNITION}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
+    if (CONF_FEATURES.enableFaceTracking.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_FACE_TRACKING}`);
+        await new Promise(r => setTimeout(r, 3000));
+    }
 
     // Stop Breath Rosbag
-    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_BREATH}`);
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Stop Audio Services
-    stopAudio();
-    await new Promise(r => setTimeout(r, 2000));
+    if (CONF_FEATURES.enableRobotBreath.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_BREATH}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+    
+    // Stop Autonomous Speech
+    if (CONF_FEATURES.enableAutoSpeech.value){
+        stopAutonomousSpeech();
+    }
 
     // Notify next workflow state
     updatePipelineState(STATE.PAUSED);
@@ -467,9 +833,6 @@ export async function pauseProcedures() {
 }
 
 export async function dockingProcedures(maxLinDistance) {
-    
-    // Kill all movement
-    stopRobotMovement();
 
     // Prepare to docking Forward
     const forwardComplete =  await handleDockingMovement("forward", maxLinDistance);
@@ -480,14 +843,14 @@ export async function dockingProcedures(maxLinDistance) {
     // Ask for help only if is_docked = TRUE but is_charging = FALSE ?!?
     // TODO: Check is_docked condition when having automatic docking procedure ready
     if (maxLinDistance == 0.0){
-        while (!batteryMonitor.getIsCharging()){
-            sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
-            await new Promise(r => setTimeout(r, 60000));   // 1 minute
-        }
+        // while (!batteryMonitor.getIsCharging()){
+        //     sendLocalCommand(`${ROS_COMMANDS.SETUP_LOCAL} && ${LAUNCH_COMMANDS.SAY_TIRED}`);
+        //     await new Promise(r => setTimeout(r, 60000));   // 1 minute
+        // }
     }
 
     // Notify next workflow state
-    updatePipelineState(STATE.DOCKED);
+    updatePipelineState(STATE.STOPPED);
 
     return true;
 }

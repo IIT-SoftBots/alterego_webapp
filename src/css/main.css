@@ -94,6 +94,7 @@ body {
 .main-button.pause { background-color: #2d9612; }
 .second-button { background-color: #e25656; }
 .second-button.home { background-color: #1484b8; }
+.second-button.stop { background-color: #e2569c; }
 .settings-button { background-color: #656965; }
 .close-button { background-color: #f44336; }
 

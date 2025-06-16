@@ -1,8 +1,50 @@
-import { STATE, initializeConfig } from '../js/constants.js';
+import { STATE } from '../js/constants.js';
 import { state, ws } from '../js/main.js';
 import { customTaskDefinitions } from './customTasks.js';
 
 let lastPipelineState = STATE.RESTART_AUTO;
+const debugTaskPage = false; // Set to true to enable debug mode for the custom tasks page
+
+// Websocket Handlers
+async function handleTasksWebSocket() {
+    
+    console.log('WebSocket connection established for custom tasks page');
+    ws.send(JSON.stringify({ type: 'requestInitialState'}));
+  
+    renderCustomTaskButtons();
+    
+    // Redefine the WebSocket message handler for this page
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'stateUpdate') {
+            const newStateData = message.data;
+
+            if (newStateData && typeof newStateData === 'object'){
+                Object.assign(state, newStateData);
+            }
+
+            // Update Tasks User Interface
+            updateTaskButtonsState();
+        }
+    };
+
+    ws.onclose = async () => {
+        // Handle automatic reconnection
+        await showLocalPopup({
+            title: 'WebApp Closed',
+            text: 'The WebApp has been closed. This page will be closed as well in a few time. Please refresh the page to reconnect.',
+            icon: 'warning',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            timer: 8000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+        // Reload the web page and force clear the cache
+        window.location.reload(true);
+    };
+}
+   
 
 // Function to render custom task buttons
 function renderCustomTaskButtons() {
@@ -12,6 +54,29 @@ function renderCustomTaskButtons() {
         return;
     }
     container.innerHTML = ''; // Clear existing buttons
+
+    const numberOfTasks = customTaskDefinitions.length;
+
+    // --- Styling for the container to grow and distribute height ---
+    container.style.display = 'grid';
+    container.style.flexGrow = '1';
+    container.style.width = '100%';
+    container.style.maxWidth = '100%'; // Max width for two columns
+    
+    if (numberOfTasks > 0 && numberOfTasks < 4) { // Single column
+        container.style.gridTemplateColumns = '1fr';
+        // Distribute available height equally among the rows
+        container.style.gridTemplateRows = `repeat(${numberOfTasks}, 1fr)`;
+    } else if (numberOfTasks >= 4) { // Two columns
+        const numRows = Math.ceil(numberOfTasks / 2);
+        container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        // Distribute available height equally among the rows
+        container.style.gridTemplateRows = `repeat(${numRows}, 1fr)`;
+    } else { // No tasks
+        container.style.flexGrow = '0'; // Don't grow if no tasks
+        container.style.display = 'none'; // Hide if no tasks
+    }
+    // --- End of container styling ---
 
     customTaskDefinitions.forEach(taskDef => {
         const button = document.createElement('button');
@@ -33,20 +98,17 @@ function renderCustomTaskButtons() {
                 });
 
                 if (!confirmResult) {
-                    return; // User cancelled the task
+                    button.disabled = false; // Re-enable button if user cancelled
+                    return; 
                 }
 
                 // Execute the task action defined in the taskDef
                 const taskResult = await taskDef.action();
 
                 if (taskResult && taskResult.message) {
-                    // Show a popup with the result message
-                    await showLocalPopup({
-                        title: taskResult.success ? 'Task Success' : 'Task Error',
-                        text: taskResult.message,
-                        icon: taskResult.success ? 'success' : 'error',
-                    });
-                    console.log(`Task result "${taskDef.buttonLabel}":`, taskResult);
+                    console.log(`Task "${taskDef.buttonLabel}" executed`);
+                    console.log('Result: ', taskResult.success ? 'Task Success' : 'Task Error');
+                    console.log('Message: ', taskResult.message);
                 }
 
             } catch (error) {
@@ -57,7 +119,6 @@ function renderCustomTaskButtons() {
                     icon: 'error'
                 });
             } finally {
-                // Re-enable the button after task execution
                 button.disabled = false;
             }
         });
@@ -66,8 +127,6 @@ function renderCustomTaskButtons() {
 
     // Apply colors to buttons after they are created
     applyButtonColors();
-
-    // After rendering buttons, update their state based on the current pipeline state
     updateTaskButtonsState();
 }
 
@@ -82,59 +141,23 @@ function applyButtonColors() {
     });
 }
 
-// Websocket Handlers
-ws.onopen = async () => {
-    console.log('WebSocket connection established for custom tasks page');
-    ws.send(JSON.stringify({ type: 'requestInitialState'}));
-    
-    await initializeConfig();
-    renderCustomTaskButtons();
-};
-
-ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type === 'stateUpdate') {
-        const newStateData = message.data;
-
-        if (newStateData && typeof newStateData === 'object'){
-            Object.assign(state, newStateData);
-        }
-
-        // Update Tasks User Interface
-        updateTaskButtonsState();
-    }
-};
-
-ws.onclose = async () => {
-    // Handle automatic reconnection
-    await showLocalPopup({
-        title: 'WebApp Closed',
-        text: 'The WebApp has been closed. This page will be closed as well in a few time. Please refresh the page to reconnect.',
-        icon: 'warning',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        timer: 8000,
-        timerProgressBar: true,
-        showConfirmButton: false
-    });
-    // Reload the web page and force clear the cache
-    window.location.reload(true);
-};
-
-
 function updateTaskButtonsState() {
     console.log("Updated state for task buttons: ", state.pipelineState);
 
     // Logic to enable/disable all task buttons based on pipelineState
-    const disableTasksCondition = state.pipelineState !== STATE.WORK_MODE && state.pipelineState !== STATE.PAUSED;
+    const disableTasksCondition = state.pipelineState !== STATE.WORK_MODE;
 
     const taskButtons = document.querySelectorAll('#customTasksContainer .task-button');
-    taskButtons.forEach(button => {
-        button.disabled = disableTasksCondition;
-    });
+    
+    // Debug mode allows all buttons to be enabled regardless of pipelineState
+    if (!debugTaskPage) {
+        taskButtons.forEach(button => {
+            button.disabled = disableTasksCondition;
+        });
+    }
 
     // Popup logic based on pipelineState
-    if (state.pipelineState === STATE.WORK_MODE){
+    if (!disableTasksCondition){
         if (Swal.isVisible()){
             Swal.close();
         }
@@ -148,12 +171,16 @@ function updateTaskButtonsState() {
             case STATE.PAUSED:
                 popupText = 'Robot Paused';
                 break;
+            case STATE.STOPPING:
+                popupText = 'Robot Stopping';
+                break;
             default:
                 popupText = 'Waiting for the User to start the Robot';
                 break;
         }
+        
         // Avoid to show the popup if it is already visible
-        if (!Swal.isVisible() || !Swal.getConfirmButton()?.hasAttribute('listenerAttached')) { // Heuristica per popup di task
+        if (!debugTaskPage && (!Swal.isVisible() || !Swal.getConfirmButton()?.hasAttribute('listenerAttached'))) {
              showLocalPopup({
                 title: 'Warning',
                 text: popupText,
@@ -192,15 +219,13 @@ function showLocalPopup(popupData) {
     });
 }
 
-// Assures the DOM is ready before rendering buttons
-// if 'ws.onopen' is not sufficiently delayed.
-// Alternatively, you can call `initializeConfig` and `renderCustomTaskButtons`
-// within a DOMContentLoaded event if `ws` connects very early.
-// document.addEventListener('DOMContentLoaded', () => {
-//     if (ws.readyState === WebSocket.OPEN) { // If ws is already open
-//         (async () => {
-//             await initializeConfig();
-//             renderCustomTaskButtons();
-//         })();
-//     }
-// });
+// Start the application when the DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+     
+    while (typeof ws === 'undefined' || ws.readyState !== WebSocket.OPEN) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for ws to be defined and connected
+    }
+
+    // Wait until ws is defined and connected before calling handleTasksWebSocket
+    await handleTasksWebSocket();
+});

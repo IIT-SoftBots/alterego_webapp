@@ -1,5 +1,5 @@
 import { batteryMonitor } from './batterymonitor.js';
-import { NUC_BASE_IP, RobotName, ROS_CATKIN_WS, ROS_HOSTNAME, ROS_IP, ROS_MASTER_URI, ROS_SRC_FOLDER } from './constants.js';
+import { NUC_BASE_IP, RobotHasFallback, RobotHasKickstand, RobotName, ROS_CATKIN_WS, ROS_HOSTNAME, ROS_IP, ROS_MASTER_URI, ROS_SRC_FOLDER } from './constants.js';
 import { ROS_COMMANDS, LAUNCH_COMMANDS } from './constants.js';
 import { updateBatteryGraphics } from './utils.js';
 import { ws } from './main.js';
@@ -498,44 +498,43 @@ export async function initializeSystem() {
 //        const isStable = await checkStability();
 //        if (!isStable) return false;
 
-        // Accendere le ruote automaticamente:
-        
-        // const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
-        //     title: 'Activating Wheels',
-        //     text: 'Pay attention!! Robot is activating balancing...', // Modified text
-        //     icon: 'warning',
-        //     timer: 5000, // Removed timer
-        //     timerProgressBar: true, // Removed timer progress bar
-        //     showConfirmButton: false, // Show confirm button
-        // });
-
-        // Accendere le ruote non automaticamente:
-        const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
-            title: 'Activating Wheels',
-            //text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
-            text: 'Pay attention!! RAISE the ROBOT and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
-            icon: 'warning',
-            //timer: 5000, // Removed timer
-            //timerProgressBar: true, // Removed timer progress bar
-            showConfirmButton: true, //true, // Show confirm button
-            confirmButtonText: 'OK', // Set confirm button text
-            allowOutsideClick: false, // Prevent closing by clicking outside
-            allowEscapeKey: false, // Prevent closing with ESC key
-            showCancelButton: false // Ensure no cancel button is shown
-        });       
-
-        // Check if the user confirmed
-        if (!confirmWheels) {
-            console.log('Wheel activation cancelled by user.');
-            // Optionally, show another popup or handle cancellation
-            await showSyncedPopup({
-                title: 'Cancelled',
-                text: 'Wheel activation was cancelled.',
-                icon: 'info',
-                timer: 2000,
-                showConfirmButton: false
+        // Turn wheels on automatically if kickstand and fallback are available
+        if (RobotHasKickstand && RobotHasFallback){
+            const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
+                title: 'Activating Wheels',
+                text: 'Pay attention!! Robot is activating balancing...', // Modified text
+                icon: 'warning',
+                timer: 5000, // Removed timer
+                timerProgressBar: true, // Removed timer progress bar
+                showConfirmButton: false, // Show confirm button
             });
-            return false; // Stop the initialization if cancelled
+        }
+        else{
+            // Turn wheels on with confirmation popup
+            const confirmWheels = await showSyncedPopup({ // Added await and variable to store result
+                title: 'Activating Wheels',
+                text: 'Pay attention!! RAISE the ROBOT and then Click OK to continue', // RAISE the ROBOT and then Click OK to continue.', // Modified text
+                icon: 'warning',
+                showConfirmButton: true, // Show confirm button
+                confirmButtonText: 'OK', // Set confirm button text
+                allowOutsideClick: false, // Prevent closing by clicking outside
+                allowEscapeKey: false, // Prevent closing with ESC key
+                showCancelButton: false // Ensure no cancel button is shown
+            });       
+
+            // Check if the user confirmed
+            if (!confirmWheels) {
+                console.log('Wheel activation cancelled by user.');
+                // Optionally, show another popup or handle cancellation
+                await showSyncedPopup({
+                    title: 'Cancelled',
+                    text: 'Wheel activation was cancelled.',
+                    icon: 'info',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return false; // Stop the initialization if cancelled
+            }
         }
 
         // Start wheels control

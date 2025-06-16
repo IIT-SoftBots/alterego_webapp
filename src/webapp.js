@@ -4,11 +4,13 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const { Client } = require('ssh2');
 const fs = require('fs');
+const yaml = require('js-yaml');
 const os = require('os'); // Add os module to get system information
 const proxy = require('express-http-proxy'); // Importa express-http-proxy
 
 // Importa WebSocket
-const { wss } = require('./js/websocket');
+const { wss } = require('./js/websocket.js');
+const { CONF_FEATURES } = require('./js/constants.js');
 
 const app = express();
 const port = 3000;
@@ -152,15 +154,21 @@ getNucIPs().then(async ips => {
 // Move server startup to a function
 function startServer() {   
     const server = app.listen(port, '0.0.0.0', () => {
-        console.log(`Server running at http://0.0.0.0:${port}`);
+        //console.log(`Server running at http://0.0.0.0:${port}`);
     });
     
     // Collegamento WebSocket al server HTTP
     server.on('upgrade', (request, socket, head) => {
-        wss.handleUpgrade(request, socket, head, (ws) => {
-            wss.emit('connection', ws, request);
+        wss.handleUpgrade(request, socket, head, (wsInstance) => {
+            wss.emit('connection', wsInstance, request);
         });
     });
+
+      // Report the app access URLs
+    console.log(`Access main app via http://${NUC_VISION_IP}:${port}`);
+
+    // Initialize custom tasks server
+    initializeTasksServer();
 }
 
 // SSH setup
@@ -224,6 +232,15 @@ app.post('/execute-local', async (req, res) => {
     }
 });
 
+app.post('/grep-command-local', async (req, res) => {
+    try {
+        const output = await executeLocal(req.body.command);
+        res.json({ output });
+    } catch (error) {
+        console.error('Grep command loca lerror:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 function execute(command) {
     return new Promise((resolve, reject) => {
@@ -376,71 +393,140 @@ process.on('unhandledRejection', (reason) => {
 });
 
 
+// -------------- Configuration Features ------------------
+const CONFIGURATION_FILE_PATH = path.join(__dirname, 'config', 'robot_webapp_configuration.yaml');
+const DEFAULT_FEATURES = {};
+for (const key in CONF_FEATURES) {
+    if (Object.hasOwnProperty.call(CONF_FEATURES, key) && CONF_FEATURES[key] && typeof CONF_FEATURES[key].value !== 'undefined') {
+        DEFAULT_FEATURES[key] = CONF_FEATURES[key].value;
+    } else {
+        // Fallback in case the structure is not as expected or value is undefined
+        console.warn(`Key "${key}" in CONF_FEATURES does not have a property 'value' defined. Set to false as default.`);
+        DEFAULT_FEATURES[key] = false;
+    }
+}
+
+function readFeatures() {    
+    if (fs.existsSync(CONFIGURATION_FILE_PATH)) {
+        try {
+            const fileContents = fs.readFileSync(CONFIGURATION_FILE_PATH, 'utf8');
+            const loadedFeatures = yaml.load(fileContents);
+            // Assures all default keys are present
+            // and loaded values overwrite defaults only if present in the file
+            const mergedFeatures = { ...DEFAULT_FEATURES };
+            for (const key in loadedFeatures) {
+                if (Object.hasOwnProperty.call(loadedFeatures, key) && Object.hasOwnProperty.call(mergedFeatures, key)) {
+                    mergedFeatures[key] = loadedFeatures[key];
+                }
+            }
+            return mergedFeatures;
+        } catch (error) {
+            console.error('Error reading or parsing features file, using defaults:', error);
+            return { ...DEFAULT_FEATURES };
+        }
+    }
+    return { ...DEFAULT_FEATURES};
+}
+
+function writeFeatures(features) {
+    try {
+        const dir = path.dirname(CONFIGURATION_FILE_PATH);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        const yamlStr = yaml.dump(features);
+        fs.writeFileSync(CONFIGURATION_FILE_PATH, yamlStr, 'utf8');
+        console.log('Features saved to:', CONFIGURATION_FILE_PATH);
+    } catch (error) {
+        console.error('Error writing features file:', error);
+    }
+}
+
+// API route to get features
+app.get('/api/features', (req, res) => {
+    const features = readFeatures();
+    res.json(features);
+});
+
+// API route to update features
+app.post('/api/features', (req, res) => {
+    const newFeatures = req.body;
+    // Basic validation: ensure all default keys are present if partial update is not desired
+    const updatedFeatures = { ...readFeatures(), ...newFeatures };
+    writeFeatures(updatedFeatures);
+    res.json({ success: true, message: 'Features updated successfully.', features: updatedFeatures });
+});
 
 
 // -------------- Custom Task Server ------------------
-const appTasks = express();
-const portTasks = 3001;
+async function initializeTasksServer() {
+    const appTasks = express();
+    const portTasks = 3001;
 
-// Middleware and static as the main app
-appTasks.use(bodyParser.json());
-appTasks.use(express.json());
+    // Middleware and static as the main app
+    appTasks.use(bodyParser.json());
+    appTasks.use(express.json());
 
-// Serves tasks-index.html page as root
-appTasks.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'custom_tasks', 'tasks-index.html'));
-});
+    // Serves tasks-index.html page as root
+    appTasks.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'custom_tasks', 'tasks-index.html'));
+    });
 
-// --- API MIRROR: all the main app routes are replicated on appTasks ---
-const routesToMirror = [
-    { method: 'get', path: '/api/config' },
-    { method: 'post', path: '/execute-local' },
-    { method: 'post', path: '/execute' },
-    { method: 'post', path: '/grep-command' },
-    { method: 'post', path: '/send-videocommand' },
-    { method: 'post', path: '/ping' }
-    // add other routes here if needed
-];
+    // --- API MIRROR: all the main app routes are replicated on appTasks ---
+    const routesToMirror = [
+        { method: 'get', path: '/api/config' },
+        { method: 'get', path: '/api/features' },
+        { method: 'post', path: '/execute-local' },
+        { method: 'post', path: '/grep-command-local' },
+        { method: 'post', path: '/execute' },
+        { method: 'post', path: '/grep-command' },
+        { method: 'post', path: '/send-videocommand' },
+        { method: 'post', path: '/ping' }
+        // add other routes here if needed
+    ];
 
-routesToMirror.forEach(route => {
-    const proxyTargetHost = `localhost:${port}`;
-    const proxyTarget = `http://${proxyTargetHost}`;
-    
-    // Utilizzo di express-http-proxy
-    appTasks[route.method](route.path, proxy(proxyTargetHost, {
-        proxyReqPathResolver: function (req) {
-            const newPath = req.originalUrl;
-            //console.log(`[API Mirror - appTasks:${portTasks}] Proxying ${req.method} ${req.originalUrl} (req.path: ${req.path}) to ${proxyTarget}${newPath}`);
-            return newPath;
-        },
-        userResDecorator: function(proxyRes, proxyResData, userReq, userRes) {
-            //console.log(`[API Mirror - appTasks:${portTasks}] Received response from target for ${userReq.method} ${userReq.originalUrl}`);
-            return proxyResData;
-        },
-        proxyErrorHandler: function(err, res, next) {
-            //console.error(`[API Mirror - appTasks:${portTasks}] Proxy error for original request to ${res.req.originalUrl}:`, err);
-            if (res && !res.headersSent){
-                res.status(500).send('Proxy error');
-            } else {
-                next(err);
+    routesToMirror.forEach(route => {
+        const proxyTargetHost = `0.0.0.0:${port}`;
+        const proxyTarget = `http://${proxyTargetHost}`;
+        
+        // Utilizzo di express-http-proxy
+        appTasks[route.method](route.path, proxy(proxyTarget, {
+            proxyReqPathResolver: function (req) {
+                const newPath = req.originalUrl;
+                //console.log(`[API Mirror - appTasks:${portTasks}] Proxying ${req.method} ${req.originalUrl} (req.path: ${req.path}) to ${proxyTarget}${newPath}`);
+                return newPath;
+            },
+            userResDecorator: function(proxyRes, proxyResData, userReq, userRes) {
+                //console.log(`[API Mirror - appTasks:${portTasks}] Received response from target for ${userReq.method} ${userReq.originalUrl}`);
+                return proxyResData;
+            },
+            proxyErrorHandler: function(err, res, next) {
+                //console.error(`[API Mirror - appTasks:${portTasks}] Proxy error for original request to ${res.req.originalUrl}:`, err);
+                if (res && !res.headersSent){
+                    res.status(500).send('Proxy error');
+                } else {
+                    next(err);
+                }
             }
-        }
-    }));
-});
+        }));
+    });
 
-// Serve static files AFTER defining the root route
-appTasks.use(express.static(path.join(__dirname, 'custom_tasks')));
-appTasks.use('/components', express.static(path.join(__dirname, 'components')));
-appTasks.use('/images', express.static(path.join(__dirname, 'images')));
-appTasks.use('/js', express.static(path.join(__dirname, 'js')));
-appTasks.use('/css', express.static(path.join(__dirname, 'css')));
+    // Serve static files AFTER defining the root route
+    appTasks.use(express.static(path.join(__dirname, 'custom_tasks')));
+    appTasks.use('/components', express.static(path.join(__dirname, 'components')));
+    appTasks.use('/images', express.static(path.join(__dirname, 'images')));
+    appTasks.use('/js', express.static(path.join(__dirname, 'js')));
+    appTasks.use('/css', express.static(path.join(__dirname, 'css')));
 
-// --- CUSTOM API (ONLY ON 3001) ---
-appTasks.post('/custom-task', (req, res) => {
-    // Custom logic only for port 3001
-    res.json({ success: true, message: 'Custom task executed!' });
-});
+    // --- CUSTOM API (ONLY ON 3001) ---
+    appTasks.post('/custom-task', (req, res) => {
+        // Custom logic only for port 3001
+        res.json({ success: true, message: 'Custom task executed!' });
+    });
 
-appTasks.listen(portTasks, () => {
-    console.log(`Custom server running at http://localhost:${portTasks}`);
-});
+    appTasks.listen(portTasks, '0.0.0.0', () => {
+        //console.log(`Custom server running at http://0.0.0.0:${portTasks}`);
+    });
+    
+    console.log(`Access custom tasks app via http://${NUC_VISION_IP}:${portTasks}`)
+}

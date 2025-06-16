@@ -60,7 +60,7 @@ export async function handleMainButtonClick() {
         console.log(state.pipelineState);
 
         if (state.pipelineState == STATE.INIT ||
-            state.pipelineState == STATE.DOCKED ||
+            state.pipelineState == STATE.STOPPED ||
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
             
             // First popup - Global warning
@@ -76,7 +76,7 @@ export async function handleMainButtonClick() {
             
             if (!warnAnsw) return false;
 
-            if (state.pipelineState == STATE.DOCKED) {  // In this case, the robot is still active
+            if (state.pipelineState == STATE.STOPPED) {  // In this case, the robot is still active
                 endChargeProcedures();
             }
             else {

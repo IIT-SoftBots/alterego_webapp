@@ -1,9 +1,9 @@
 import { showSyncedPopup } from '../api.js';
 import { batteryMonitor } from '../batterymonitor.js';
-import { STATE } from '../constants.js';
+import { CONF_FEATURES, STATE } from '../constants.js';
 import { state, ws } from '../main.js';
 import { updateUI } from '../utils.js';
-import { robotHomeClick, robotPowerOffClick } from '../workflow.js';
+import { robotStopClick, robotPowerOffClick } from '../workflow.js';
 /**
  * Gestisce il click sul pulsante Home
  * Avvia il movimento verso la posizione home
@@ -16,7 +16,7 @@ export async function handleSecondButtonClick() {
     try {
      
         if (state.pipelineState == STATE.INIT ||
-            state.pipelineState == STATE.DOCKED ||
+            state.pipelineState == STATE.STOPPED ||
             state.pipelineState == STATE.RECOVERY_FROM_EMERGENCY){
 
             // First popup - Global warning
@@ -42,24 +42,41 @@ export async function handleSecondButtonClick() {
             }));
         }
         else {
-            // Clicked to Go Home
-            const warnAnsw = await showSyncedPopup({
-                title: 'Home Position',
-                text: "The system will navigate towards its home now. Are you sure?",
-                icon: 'warning',
-                showCancelButton: true,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonText: 'OK, go Home'
-            });
-            
-            if (!warnAnsw) return;
+            if (CONF_FEATURES.enableAutoNavigation.value) {
+                // If auto navigation is enabled, show 'Home' button
+        
+                // Clicked to Go Home
+                const warnAnsw = await showSyncedPopup({
+                    title: 'Home Position',
+                    text: "The system will navigate towards its home now. Are you sure?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'OK, go Home'
+                });                
+                if (!warnAnsw) return;
+
+            }
+            else {
+                // Show 'Stop Robot' button
+                const warnAnsw = await showSyncedPopup({
+                    title: 'Stop Robot',
+                    text: "The system will stop the robot now. Are you sure?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: 'OK, Stop Robot'
+                });
+                if (!warnAnsw) return;
+            }
 
             // Homing
             batteryMonitor.setShouldAutoRestart(false);
-            robotHomeClick();
-            state.isRunning = false;
+            robotStopClick();
 
+            state.isRunning = false;
             ws.send(JSON.stringify({
                 type: 'stateUpdate',
                 data: { isRunning: false }
