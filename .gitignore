@@ -2,3 +2,4 @@ WebApp-linux-x64/
 .qodo
 .vscode/
 node_modules/
+src/config/robot_webapp_configuration.yaml
