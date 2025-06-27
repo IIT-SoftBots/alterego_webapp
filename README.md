@@ -3,6 +3,10 @@
 ## Overview
 The AlterEGO Web Application is a web-based control panel designed to manage and monitor the AlterEGO robotic system. This application provides a user-friendly interface for interacting with the robot's functionalities.
 
+It is intended to deal with the following operator workflow:
+
+![AlterEGO Web App Workflow](src/images/webapp_workflow.png)
+
 ## Project Structure
 ```
 alterego-webapp
@@ -17,9 +21,14 @@ alterego-webapp
 │   │   └── main.js              # Main JavaScript file for initialization
 │   ├── css
 │   │   └── main.css             # Styles for the web application
-│   └── components
-│       ├── status-panel.html    # HTML structure for the status panel
-│       └── button-grid.html     # HTML structure for the button grid
+│   ├── components
+│   │   ├── status-panel.html    # HTML structure for the status panel
+│   │   └── button-grid.html     # HTML structure for the button grid
+│   └── custom_tasks
+│       ├── task-index.html      # Main HTML entry point for Custom Tasks page
+│       ├── tasks.js             # Functions to handle custom tasks buttons
+│       └── customTasks.js       # HTML structure to edit to customize Tasks actions
+│
 ├── package.json                 # npm configuration file
 └── README.md                    # Project documentation
 ```
@@ -125,6 +134,14 @@ alterego-webapp
 ## Usage
 The web app is automatically executed at startup after a small delay.
 If it's closed, it can be reopened through the shortcut on the sidebar.
+
+Operator actions are exclusively through buttons that allow the robot to operate between the following states:
+
+![AlterEGO Web App States](src/images/webapp_states.png)
+
+Each state manages the activation/deactivation of the mandatory and additional robot ROS nodes. At the moment the list of executed routines and configurable feaures is resumed here:
+
+![AlterEGO Routines and Features](src/images/webapp_routines_and_features.png)
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
