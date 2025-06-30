@@ -83,9 +83,9 @@ alterego-webapp
    ```
 
 6. Modify _start-alterego-webapp.sh_ bash script file
-   - Open the file and modify row 5 to match _alterego_webapp_ folder path (if needed)
+   - Open the file and modify _APP_DIR_ row to match _alterego_webapp_ folder path (if needed)
       ```
-      node ~/catkin_ws/src/AlterEGO_v2/alterego_webapp/src/webapp.js & sleep 5 
+      APP_DIR="/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp"
       ```
    - Open a terminal window and modify permissions to allow execution of the script with the command
       ```
@@ -102,17 +102,12 @@ alterego-webapp
       ```
       [Desktop Entry]
       Type=Application
-      Name=WebApp
-      Exec=firefox --kiosk http://localhost:3000
-      Icon=firefox
-      Terminal=false
-      Categories=Utility;[Desktop Entry]
-      Type=Application
       Exec=/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp/start-alterego-webapp.sh
       Icon=/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp/src/images/logo.png
       Hidden=false
       NoDisplay=false
       Terminal=false
+      Categories=Utility
       X-GNOME-Autostart-enabled=true
       X-GNOME-Autostart-Delay=10
       Name[en_US]=AlterEGO Web App
@@ -127,14 +122,27 @@ alterego-webapp
       ```
       sudo desktop-file-install alterego-webapp.desktop
       ```
+      In case you need to manage it later, this will install the shortcut in the default directory _/usr/share/applications_
+
    - Add the app to sidebar for quick access
       - In the _Activities_ Overview in Ubuntu, search for "_AlterEgo Web App_", right click on the icon and "_Add to favorites_" to show it on the sidebar
 
 
-## Usage
-The web app is automatically executed at startup after a small delay.
+## Startup
+The web app is **automatically executed at startup** after a small delay.
 If it's closed, it can be reopened through the shortcut on the sidebar.
 
+Alternatively, you can open it through the following commands executed on separate terminals:
+   - Terminal 1:
+      ```
+      node ~/catkin_ws/src/AlterEGO_v2/alterego_webapp/src/webapp.js
+      ```
+   - Terminal 2:
+      ```
+      firefox --kiosk http://localhost:3000
+      ```
+
+## Usage
 Operator actions are exclusively through buttons that allow the robot to operate between the following states:
 
 ![AlterEGO Web App States](src/images/webapp_states.png)
@@ -142,6 +150,8 @@ Operator actions are exclusively through buttons that allow the robot to operate
 Each state manages the activation/deactivation of the mandatory and additional robot ROS nodes. At the moment the list of executed routines and configurable feaures is resumed here:
 
 ![AlterEGO Routines and Features](src/images/webapp_routines_and_features.png)
+
+**Custom tasks** can be accomplished by accessing the additional web page at http://192.168.88.xx:3001 within the _"AlterEgo Net"_ network, where **xx** is the last part of the Vision NUC IP address on the wired network.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.

@@ -93,8 +93,28 @@ async function initWebPage() {
     }
 
     const isRemoteComputerOnline = await pingRemoteComputer();
+    console.log('Remote computer online:', isRemoteComputerOnline);
     if (isRemoteComputerOnline) {        
         await retrieveRobotConfig();
+    }
+    else {
+        console.error('Remote computer is not online. Cannot retrieve robot configuration.');
+        Swal.fire({
+            title: 'Connection Error',
+            text: "Could not connect to base NUC. Please check it is online. The page will be reloaded in a few seconds...",
+            icon: 'error',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            timer: 8000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        }).then(() => {
+            // Reload the web page and force clear the cache
+            window.location.reload(true);
+            
+        });
+
+        return;
     }
 }
 
