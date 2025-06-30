@@ -40,6 +40,21 @@ export async function handleSecondButtonClick() {
                 type: 'stateUpdate',
                 data: { isPowered: false }
             }));
+             
+            // Show a popup to inform the user that the WebApp will be closed
+            // (useful only if the WebApp is opened externally from the robot)
+            await showSyncedPopup({
+                title: 'WebApp Closed',
+                text: 'The robot has been switched off. This page will be closed in a few time. Please refresh the page to reconnect.',
+                icon: 'warning',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                timer: 8000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+            // Reload the web page and force clear the cache
+            window.location.reload(true);
         }
         else {
             if (CONF_FEATURES.enableAutoNavigation.value) {
