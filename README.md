@@ -85,7 +85,7 @@ alterego-webapp
 6. Modify _start-alterego-webapp.sh_ bash script file
    - Open the file and modify _APP_DIR_ row to match _alterego_webapp_ folder path (if needed)
       ```
-      APP_DIR="/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp"
+      APP_DIR="/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp"
       ```
    - Open a terminal window and modify permissions to allow execution of the script with the command
       ```
@@ -102,8 +102,8 @@ alterego-webapp
       ```
       [Desktop Entry]
       Type=Application
-      Exec=/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp/start-alterego-webapp.sh
-      Icon=/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp/src/images/logo.png
+      Exec=/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/start-alterego-webapp.sh
+      Icon=/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp/src/images/logo.png
       Hidden=false
       NoDisplay=false
       Terminal=false
@@ -135,7 +135,7 @@ If it's closed, it can be reopened through the shortcut on the sidebar.
 Alternatively, you can open it through the following commands executed on separate terminals:
    - Terminal 1:
       ```
-      node ~/catkin_ws/src/AlterEGO_v2/alterego_webapp/src/webapp.js
+      node ~/AlterEGO_v2/catkin_ws/src/alterego_webapp/src/webapp.js
       ```
    - Terminal 2:
       ```
