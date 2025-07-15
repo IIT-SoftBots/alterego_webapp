@@ -18,7 +18,7 @@ export let RobotHasFaceExpressions = false;
 
 export const ROS_CATKIN_WS = '~/catkin_ws';  // Default: '~/catkin_ws'
 export const ROS_SRC_FOLDER = '/src/AlterEGO_v2';  // Default: '/src'
-export const ROS_CATKIN_WS_LOCAL = '~/catkin_ws';  // Default: '~/catkin_ws'
+export const ROS_CATKIN_WS_LOCAL = '~/AlterEGO_v2/catkin_ws';  // Default: '~/AlterEGO_v2/catkin_ws'
 export const EGO_GUI_FOLDER_LOCAL = '~/AlterEGO_v2/EGO_GUI';  // Default: '~/AlterEGO_v2/EGO_GUI'
 
 export let ROS_COMMANDS = {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 1. Set up application directory
-APP_DIR="/home/alterego-vision/catkin_ws/src/AlterEGO_v2/alterego_webapp"
+APP_DIR="/home/alterego-vision/AlterEGO_v2/catkin_ws/src/alterego_webapp"
 
 # 2. Correctly initialize NVM (Node Version Manager) to find the right Node.js version.
 # This is the standard and most reliable way to use NVM in scripts.
