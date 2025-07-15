@@ -39,12 +39,7 @@ alterego-webapp
    git clone <repository-url>
    ```
 
-2. Navigate to the project directory:
-   ```
-   cd alterego-webapp
-   ```
-
-3. Install the dependencies:
+2. Install the dependencies:
    ```
    sudo apt install nodejs npm
    
@@ -52,6 +47,24 @@ alterego-webapp
    
    sudo apt install nginx -y
    
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+   ```
+
+   Close and reopen terminal, then type
+   ```
+   nvm install lts/jod
+   ```
+   Check the version of nodejs (v22.17.0) and npm (10.9.2) corresponds
+   ```
+   node -v
+   
+   npm -v
+   ```
+
+3. Navigate to the project directory and install node modules:
+   ```
+   cd alterego-webapp
+
    npm install
    ```
 
