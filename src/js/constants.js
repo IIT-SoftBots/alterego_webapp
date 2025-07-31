@@ -194,7 +194,7 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
-    LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play.launch';
+    LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
     // Additional constants
     LAUNCH_COMMANDS.TARGET_LOC = `rostopic pub -1 /${RobotName}/target_location std_msgs/String "data: 'Mostra1'"`;
     LAUNCH_COMMANDS.DOCK_STATION = `rostopic pub -1 /${RobotName}/target_location std_msgs/String "data: 'DockStation'"`;    
