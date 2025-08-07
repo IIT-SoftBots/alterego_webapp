@@ -9,7 +9,6 @@ const debugTaskPage = false; // Set to true to enable debug mode for the custom 
 async function handleTasksWebSocket() {
     
     console.log('WebSocket connection established for custom tasks page');
-    ws.send(JSON.stringify({ type: 'requestInitialState'}));
   
     renderCustomTaskButtons();
     

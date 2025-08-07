@@ -226,8 +226,6 @@ export function updateLaunchCommands() {
 
     // Stop Body Movement Nodes
     LAUNCH_COMMANDS.STOP_PILOT = {
-        R_CTRL: `/${RobotName}/right/arms_compliant_control_node`,
-        L_CTRL: `/${RobotName}/left/arms_compliant_control_node`,
         INBOUND: `/${RobotName}/inbound_data`,
         SOCKET: `/${RobotName}/socket`
     };
@@ -261,6 +259,13 @@ export function updateLaunchCommands() {
         MAP_SERVER: `/${RobotName}/map_server`,
         MAP_SERVER_OBSTACLE: `/${RobotName}/map_server_obstacle`,
         NAVIGATION: `/${RobotName}/navigation`,
+        ROBOT_STATE_PUBLISHER: `/robot_state_publisher`,
+        VIS_ROBOT: `/${RobotName}/visualize_robot`
+    };
+    LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA = {
+        LIDAR: `/${RobotName}/lidar`,
+//        NAVIGATION: `/${RobotName}/navigation`,
+        ROBOT_STATE_PUBLISHER: `/robot_state_publisher`,
         VIS_ROBOT: `/${RobotName}/visualize_robot`
     };
     console.log('====== LAUNCH COMMANDS ======');
@@ -326,6 +331,10 @@ export let CONF_FEATURES = {
     enableNavigation: {
         value: false,
         label: 'Navigation (ROS Nodes)'
+    },
+    enableNavigationProxima: {
+        value: false,
+        label: 'Navigation (Proxima)'
     },
     enableAutoNavigation: {
         value: false,

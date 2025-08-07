@@ -245,6 +245,12 @@ export async function standUpProcedures() {
         await new Promise(r => setTimeout(r, 2000));
     }
 
+    // Start Navigation Proxima
+    if (CONF_FEATURES.enableNavigationProxima.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION}`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
     // Send to Target Location
     if (CONF_FEATURES.enableAutoNavigation.value) {
         sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.TARGET_LOC}`);
@@ -543,7 +549,7 @@ export async function stopRobotMovement(){
     // Kill all movement and tracking nodes
 
     // Stop Pilot
-    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_PILOT.R_CTRL} ${LAUNCH_COMMANDS.STOP_PILOT.L_CTRL} ${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} ${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
+    sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_PILOT.INBOUND} ${LAUNCH_COMMANDS.STOP_PILOT.SOCKET}`);
     await new Promise(r => setTimeout(r, 3000));
 
     // Stop Body Movement
@@ -569,7 +575,15 @@ export async function stopRobotMovement(){
 
     // Stop Navigation
     if (CONF_FEATURES.enableNavigation.value) {
-        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION.AMCL} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MOVE_BASE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER} ${LAUNCH_COMMANDS.STOP_NAVIGATION.MAP_SERVER_OBSTACLE} ${LAUNCH_COMMANDS.STOP_NAVIGATION.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION.VIS_ROBOT}`);
+        await new Promise(r => setTimeout(r, 4000));
+    }
+
+    // Stop Navigation Proxima
+    if (CONF_FEATURES.enableNavigationProxima.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT}`);
+        //TODO re add navigation node
+        //sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT}`);
         await new Promise(r => setTimeout(r, 4000));
     }
 

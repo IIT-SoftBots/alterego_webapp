@@ -33,14 +33,25 @@ function initWebSocket() {
         ws = new WebSocket(`ws://${NUC_VISION_IP}:3000`);
         
         ws.onopen = () => {
-            console.log('WebSocket connected');
-            ws.send(JSON.stringify({ type: 'requestInitialState' }));
-            resolve(ws);
+            console.log('WebSocket connected');    
+            //When a client connects, the current state is read immediately        
         };
 
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
             reject(error); 
+        };
+
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'stateUpdate') {
+                const newState = message.data;
+                Object.assign(state, newState);
+                console.log("Initial state received:", state);
+
+                // Resolve the promise only once the initial state is received
+                resolve(ws);
+            }
         };
     });
 }

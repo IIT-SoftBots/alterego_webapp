@@ -17,14 +17,6 @@ let pageState = {
 
 const stateFile = path.join(__dirname, 'state.json');
 console.log("📁 State saved in:", stateFile);
-if (fs.existsSync(stateFile)) {
-    try {
-        pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-    }
-    catch (error) {
-        console.error("❌ Error parsing state file:", error);
-    }
-}
 
 const wss = new WebSocket.Server({ noServer: true });
 
@@ -32,10 +24,14 @@ wss.on('connection', (ws) => {
     console.log("🔗 New client connected");
     
     if (ws.readyState === WebSocket.OPEN) {
+        // When a new client connects, send the current state immediately
+        readFileState();
+
         ws.send(JSON.stringify({ 
             type: 'stateUpdate', 
             data: pageState 
         }));
+        
     }
 
     ws.on('message', (message) => {
@@ -43,14 +39,6 @@ wss.on('connection', (ws) => {
             const data = JSON.parse(message);
             
             switch(data.type) {
-                case 'requestInitialState':
-                    // Immediately send the current state to the client
-                    ws.send(JSON.stringify({ 
-                        type: 'stateUpdate', 
-                        data: pageState 
-                    }));
-                    break;
-                    
                 case 'stateUpdate':
                     if (data.data) {
                         pageState = { 
@@ -130,6 +118,18 @@ wss.on('connection', (ws) => {
         console.log("❌ Client disconnected");
     });
 });
+
+function readFileState(){
+    console.log("📖 Reading state from file:", stateFile);
+    if (fs.existsSync(stateFile)) {
+        try {
+            pageState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+        }
+        catch (error) {
+            console.error("❌ Error parsing state file:", error);
+        }
+    }
+}
 
 function saveState() {
     fs.writeFileSync(stateFile, JSON.stringify(pageState, null, 2));
