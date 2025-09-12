@@ -247,8 +247,12 @@ export async function standUpProcedures() {
 
     // Start Navigation Proxima
     if (CONF_FEATURES.enableNavigationProxima.value) {
+        sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION_PROXIMA.DOCKER_ROS_BRIDGE}`);
+        await new Promise(r => setTimeout(r, 5000));
         sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION}`);
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 5000));
+    //    sendCommand(`${ROS_COMMANDS.SETUP} && ${LAUNCH_COMMANDS.NAVIGATION_PROXIMA.NAV2POINTS}`);
+    //    await new Promise(r => setTimeout(r, 8000));
     }
 
     // Send to Target Location
@@ -581,9 +585,9 @@ export async function stopRobotMovement(){
 
     // Stop Navigation Proxima
     if (CONF_FEATURES.enableNavigationProxima.value) {
-        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT}`);
-        //TODO re add navigation node
-        //sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT}`);
+        // Re-add when nav2points is used
+        //sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.NAVIGATION} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.DOCKER_ROS_BRIDGE}`);
+        sendCommand(`${ROS_COMMANDS.SETUP} && rosnode kill ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.LIDAR} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.ROBOT_STATE_PUBLISHER} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.VIS_ROBOT} ${LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA.DOCKER_ROS_BRIDGE}`);
         await new Promise(r => setTimeout(r, 4000));
     }
 

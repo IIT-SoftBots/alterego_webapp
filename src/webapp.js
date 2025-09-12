@@ -237,14 +237,14 @@ app.post('/grep-command-local', async (req, res) => {
         const output = await executeLocal(req.body.command);
         res.json({ output });
     } catch (error) {
-        console.error('Grep command loca lerror:', error);
+        console.error('Grep command local error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 function execute(command) {
     return new Promise((resolve, reject) => {
-        sshClient.exec(command, (err, stream) => {
+        sshClient.exec(`bash -lc "${command}"`, (err, stream) => {
             if (err) {
                 reject(err);
                 return;

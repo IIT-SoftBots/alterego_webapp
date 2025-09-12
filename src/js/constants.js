@@ -192,6 +192,10 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.STT = 'roslaunch raise speech2text.launch 2>/dev/null';
     LAUNCH_COMMANDS.TTS = 'roslaunch raise text2speech.launch';
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
+    LAUNCH_COMMANDS.NAVIGATION_PROXIMA = {
+        DOCKER_ROS_BRIDGE: 'cd ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/utils/alterego_dockers/ros-humble-ros1-bridge-builder/ && ./start_bridge.sh',
+        NAV2POINTS: 'roslaunch alterego_navigation proxima_nav.launch'
+    }
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
     LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
@@ -264,9 +268,10 @@ export function updateLaunchCommands() {
     };
     LAUNCH_COMMANDS.STOP_NAVIGATION_PROXIMA = {
         LIDAR: `/${RobotName}/lidar`,
-//        NAVIGATION: `/${RobotName}/navigation`,
+        NAVIGATION: `/${RobotName}/navigation`,
         ROBOT_STATE_PUBLISHER: `/robot_state_publisher`,
-        VIS_ROBOT: `/${RobotName}/visualize_robot`
+        VIS_ROBOT: `/${RobotName}/visualize_robot`,
+        DOCKER_ROS_BRIDGE: `/ros_bridge`
     };
     console.log('====== LAUNCH COMMANDS ======');
     console.log('Core Nodes:');
