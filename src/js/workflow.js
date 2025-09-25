@@ -930,6 +930,8 @@ export async function emergencyButtonPressed() {
     // Update graphics to show both buttons
     updateUI();
 
+    showLoading(false);
+
     return true;
 }
 
