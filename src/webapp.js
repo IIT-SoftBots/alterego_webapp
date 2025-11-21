@@ -48,12 +48,18 @@ function getMyIP() {
             }
             
             // Get first IP address from hostname -I output
-            const hostIP = stdout.trim().split(' ')[0];
-            if (hostIP === '127.0.0.1') {
-                console.log(`Only localhost found (127.0.0.1), try again`);
-                resolve(null);          
+            hostIPList = stdout.trim().split(' ');
+            for (var i = 0; i < hostIPList.length; i++) {
+                //const hostIP = stdout.trim().split(' ')[0];
+                hostIP = hostIPList[i];
+                if (hostIP === '127.0.0.1') {
+                    console.log(`Only localhost found (127.0.0.1), try again`);
+                    resolve(null);          
+                }
+                if (hostIP.includes(".88.")){
+                    resolve({ hostIP });
+                }
             }
-            resolve({ hostIP });
         });
     });
 }
