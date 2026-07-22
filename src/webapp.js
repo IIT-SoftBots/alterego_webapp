@@ -39,27 +39,22 @@ app.headersTimeout = 40000; // 40 seconds
 // Get host IP and derive NUC_BASE_IP using hostname -I
 // Fixed function with proper Promise handling
 function getMyIP() {
-    return new Promise((resolve, reject) => {
-        exec('hostname -I', async (error, stdout, stderr) => {
+    return new Promise((resolve) => {
+        exec('hostname -I', (error, stdout) => {
             if (error) {
                 console.error('Error getting IPs:', error);
-                reject(error);
-                return;
+                return resolve(null);
             }
-            
-            // Get first IP address from hostname -I output
-            hostIPList = stdout.trim().split(' ');
-            for (var i = 0; i < hostIPList.length; i++) {
-                //const hostIP = stdout.trim().split(' ')[0];
-                hostIP = hostIPList[i];
-                if (hostIP === '127.0.0.1') {
-                    console.log(`Only localhost found (127.0.0.1), try again`);
-                    resolve(null);          
-                }
-                if (hostIP.includes(".88.")){
-                    resolve({ hostIP });
+
+            const hostIPList = stdout.trim().split(/\s+/).filter(Boolean);
+
+            for (const hostIP of hostIPList) {
+                if (hostIP.startsWith('192.168.88.')) {
+                    return resolve({ hostIP });
                 }
             }
+
+            return resolve(null);
         });
     });
 }

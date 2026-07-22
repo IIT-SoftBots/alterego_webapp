@@ -3,3 +3,4 @@ WebApp-linux-x64/
 .vscode/
 node_modules/
 src/config/robot_webapp_configuration.yaml
+log.txt

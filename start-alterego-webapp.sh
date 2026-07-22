@@ -39,13 +39,13 @@ notify-send "AlterEgo WebApp" "Starting up, please wait..."
 
 # 7. Change to the app directory and start the Node.js server.
 # The --experimental-specifier-resolution=node flag will now be understood by the correct Node version.
-# We redirect output to /dev/null to prevent it from creating files or showing in logs.
+# We redirect output to log.txt that will be overwritten each time.
 cd "$APP_DIR" || exit
-"$NODE_EXEC" --experimental-specifier-resolution=node src/webapp.js > /dev/null 2>&1 &
+"$NODE_EXEC" --experimental-specifier-resolution=node src/webapp.js > log.txt 2>&1 &
 
 # 8. Wait intelligently for the server to be ready on port 3000.
 attempts=0
-max_attempts=15 # Wait for a maximum of 15 seconds
+max_attempts=30 # Wait for a maximum of 30 seconds
 
 while ! nc -z localhost 3000 && [ $attempts -lt $max_attempts ]; do
     sleep 1
