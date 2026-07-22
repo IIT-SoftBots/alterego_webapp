@@ -194,7 +194,8 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
     LAUNCH_COMMANDS.NAVIGATION_PROXIMA = {
         DOCKER_ROS_BRIDGE: 'cd ' + ROS_CATKIN_WS + ROS_SRC_FOLDER + '/utils/alterego_dockers/ros-humble-ros1-bridge-builder/ && ./start_bridge.sh',
-        NAV2POINTS: 'roslaunch alterego_navigation proxima_nav.launch'
+        ROBOT_BRINGUP: 'roslaunch alterego_navigation_proxima alterego_robot_bringup.launch',
+        NAV2POINTS: 'roslaunch alterego_navigation_proxima proxima_nav.launch'
     }
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
