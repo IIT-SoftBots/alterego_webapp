@@ -112,7 +112,7 @@ export function updateLaunchCommands() {
     LAUNCH_COMMANDS.TTS = 'roslaunch alterego_text2speech text2speech_prefetch.launch';
     LAUNCH_COMMANDS.SET_VOLUME_FIX = '/home/alterego-vision/AlterEGO_Adriano/set_volume_at_startup.sh';
     LAUNCH_COMMANDS.KILL_SPEECH = './home/alterego-vision/kill_speech.sh; /home/alterego-vision/kill_speech.sh; rosnode kill /robot_adriano/speech2text /robot_adriano/text2speech';
-    LAUNCH_COMMANDS.NAVIGATION = 'roslaunch alterego_navigation autonomous_nav.launch';
+    LAUNCH_COMMANDS.NAVIGATION = "roslaunch alterego_navigation 'autonomous_nav new.launch'";   // John's map tempio_laser1 (2026-11-23)
     LAUNCH_COMMANDS.SAY_TIRED = 'roslaunch alterego_say_tired say_tired.launch';
     LAUNCH_COMMANDS.SAY_MOVE_OVER = 'roslaunch alterego_adjust_docking say_move_over.launch';
     LAUNCH_COMMANDS.BREATH = 'roslaunch alterego_rosbags_play play_breath.launch';
@@ -253,19 +253,19 @@ export function updateLaunchCommands() {
 export const UI_STATES = {
     POWER_OFF: {
         color: '#ef4444',
-        text: 'Power: Off'
+        text: 'Alimentazione: spenta'
     },
     POWER_ON: {
         color: '#22c55e',
-        text: 'Power: On'
+        text: 'Alimentazione: accesa'
     },
     SYSTEM_READY: {
         color: '#eab308',
-        text: 'Status: Ready'
+        text: 'Stato: pronto'
     },
     SYSTEM_RUNNING: {
         color: '#22c55e',
-        text: 'Status: Running'
+        text: 'Stato: al lavoro'
     },
     BATTERY_ALERT: {
         color: '#eab308',

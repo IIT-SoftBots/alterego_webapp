@@ -185,8 +185,8 @@ export async function initializeIMU(ws, robotName, attemptId) {
     try {
         // First popup - Calibration warning
         /*const initIMU = await showSyncedPopup(ws, {
-            title: 'Calibration in Progress',
-            text: "Do not touch the robot during calibration.",
+            title: 'Calibrazione in corso',
+            text: "Non toccare il robot durante la calibrazione.",
             icon: 'warning',
             showCancelButton: false,
             allowOutsideClick: false,
@@ -208,7 +208,7 @@ export async function initializeIMU(ws, robotName, attemptId) {
         
         // Second popup - Calibration progress
         await showSyncedPopup(ws, {
-            title: 'Calibrating IMU...',
+            title: 'Calibrazione del sensore di equilibrio…',
             html: 'Do not touch the robot during calibration. Wait for 5 seconds',
             timer: 5000,
             timerProgressBar: true,
@@ -236,8 +236,8 @@ export async function initializeIMU(ws, robotName, attemptId) {
         
         if (numIMUs !== 3) {
             await showSyncedPopup(ws, {
-                title: 'ERROR',
-                text: 'IMU not Connected',
+                title: 'Errore',
+                text: 'Il sensore di equilibrio non è collegato. Chiama il tecnico.',
                 icon: 'error'
             });
             
@@ -252,8 +252,8 @@ export async function initializeIMU(ws, robotName, attemptId) {
     } catch (error) {
         console.error('IMU initialization error:', error);
         await showSyncedPopup(ws, {
-            title: 'Error',
-            text: 'IMU initialization failed',
+            title: 'Errore',
+            text: 'Il sensore di equilibrio non si è avviato. Chiama il tecnico.',
             icon: 'error'
         });
         return false;
@@ -402,13 +402,13 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
             while (needPower == batteryMonitor.getPowerAlert()){ 
 
                 await showSyncedPopup(ws, {
-                    title: 'Power Alert',
-                    text: 'Power is still ' + ((needPower)?'off':'on') + '. Please push the Emergency Button to switch ' + ((needPower)?'on':'off') + ' power',
+                    title: 'Pulsante di emergenza',
+                    text: 'L\'alimentazione è ancora ' + ((needPower)?'spenta':'accesa') + '. Premi il pulsante di emergenza per ' + ((needPower)?'accenderla':'spegnerla') + '.',
                     icon: 'warning',
                     showCancelButton: false,
                     allowOutsideClick: false,
                     allowEscapeKey: false,
-                    confirmButtonText: 'OK, Check Now'
+                    confirmButtonText: 'Fatto, controlla'
                 });
                 
                 // Add a small delay to ensure the first popup is fully closed
@@ -422,8 +422,8 @@ export async function waitForPowerAlertTrigger(ws, needPower) {
     } catch (error) {
         console.error('Power Alert Trigger error:', error);
         await showSyncedPopup(ws, {
-            title: 'Error',
-            text: 'Power Alert Trigger failed',
+            title: 'Errore',
+            text: 'Controllo dell\'alimentazione non riuscito. Chiama il tecnico.',
             icon: 'error'
         });
         return false;
@@ -444,8 +444,8 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
         
         // Popup - Info to clear space
         await showSyncedPopup(ws, {
-            title: 'Moving ' + direction,
-            text: 'Pay attention!! Clear the space ' + ((direction=="forward")?'in front of':'behind') + ' the robot...',
+            title: 'Il robot si sposta ' + ((direction=="forward")?'in avanti':'indietro'),
+            text: 'Attenzione! Libera lo spazio ' + ((direction=="forward")?'davanti al':'dietro il') + ' robot…',
             icon: 'info',
             timer: 5000,
             timerProgressBar: true,
@@ -477,8 +477,8 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
             
             // Show progress popup with node status checking
             Swal.fire({
-                title: 'Moving ' + direction + '...',
-                text: 'Please wait',
+                title: 'Il robot si sta spostando ' + ((direction=="forward")?'in avanti':'indietro') + '…',
+                text: 'Attendi…',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,
@@ -492,8 +492,8 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
                             Swal.close();
                             // Show completion popup
                             await showSyncedPopup(ws, {
-                                title: 'Complete',
-                                text: direction + ' movement completed',
+                                title: 'Fatto',
+                                text: 'Spostamento completato',
                                 icon: 'success',
                                 timer: 1500,
                                 showConfirmButton: false
@@ -514,8 +514,8 @@ export async function handleDockingMovement(ws, robotName, direction, maxLinDist
     } catch (error) {
         console.error('Error in ' + direction + ' movement:', error);
         await showSyncedPopup(ws, {
-            title: 'Error',
-            text: 'Failed to move ' + direction,
+            title: 'Errore',
+            text: 'Lo spostamento non è riuscito. Chiama il tecnico.',
             icon: 'error'
         });
         return false;
@@ -539,8 +539,8 @@ export async function initializeSystem(ws, robotName, attemptId) {
 //        if (!isStable) return false;
 
         const confirmWheels = await showSyncedPopup(ws, { // Added await and variable to store result
-            title: 'Activating Wheels',
-            text: 'Pay attention!! Robot is activating balancing...', // RAISE the ROBOT and then Click OK to continue.', // Modified text
+            title: 'Attivazione delle ruote',
+            text: 'Attenzione! Il robot sta attivando l\'equilibrio…', // RAISE the ROBOT and then Click OK to continue.', // Modified text
             icon: 'warning',
             timer: 5000, // Removed timer
             timerProgressBar: true, // Removed timer progress bar
@@ -556,8 +556,8 @@ export async function initializeSystem(ws, robotName, attemptId) {
             console.log('Wheel activation cancelled by user.');
             // Optionally, show another popup or handle cancellation
             await showSyncedPopup(ws, {
-                title: 'Cancelled',
-                text: 'Wheel activation was cancelled.',
+                title: 'Annullato',
+                text: 'L\'attivazione delle ruote è stata annullata.',
                 icon: 'info',
                 timer: 2000,
                 showConfirmButton: false
@@ -604,8 +604,8 @@ export async function initializeSystem(ws, robotName, attemptId) {
         logStartupEvent(attemptId, 'startup.exception', { stage: 'system', detail: error.message });
         console.error('Error in system initialization:', error);
         await showSyncedPopup(ws, {
-            title: 'Error',
-            text: 'System initialization failed',
+            title: 'Errore',
+            text: 'L\'avvio del robot non è riuscito. Chiama il tecnico.',
             icon: 'error'
         });
         return false;
@@ -657,8 +657,8 @@ export async function getTopicValue(topic) {
             console.log('SSH connection lost, attempting to reconnect...');
             // Notify user of connection issue
             Swal.fire({
-                title: 'Connection Lost',
-                text: 'Attempting to reconnect...',
+                title: 'Connessione persa',
+                text: 'Sto provando a ricollegarmi…',
                 icon: 'warning',
                 showConfirmButton: false,
                 allowOutsideClick: false,
@@ -690,8 +690,8 @@ export async function checkStability(ws, robotName) {
             
             // Show progress popup with stability checking
             showSyncedPopup(ws, {
-                title: 'Checking Stability...',
-                text: 'Please wait and raise the robot',
+                title: 'Controllo dell\'equilibrio…',
+                text: 'Attendi e solleva il robot',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,
@@ -723,8 +723,8 @@ export async function checkStability(ws, robotName) {
                                     clearInterval(checkInterval);
                                     Swal.close();
                                     await showSyncedPopup(ws, {
-                                        title: 'Error',
-                                        text: 'Stability check failed - No readings',
+                                        title: 'Errore',
+                                        text: 'Controllo dell\'equilibrio non riuscito: nessun dato dal sensore. Chiama il tecnico.',
                                         icon: 'error'
                                     });
                                     resolve(false);
@@ -749,8 +749,8 @@ export async function checkStability(ws, robotName) {
                                     clearInterval(checkInterval);
                                     Swal.close();
                                     await showSyncedPopup(ws, {
-                                        title: 'Complete',
-                                        text: 'Stability check successful',
+                                        title: 'Fatto',
+                                        text: 'Equilibrio controllato: tutto a posto',
                                         icon: 'success',
                                         timer: 1500,
                                         showConfirmButton: false
@@ -780,8 +780,8 @@ export async function checkStability(ws, robotName) {
     } catch (error) {
         console.error('Error in stability check:', error);
         await showSyncedPopup(ws, {
-            title: 'Error',
-            text: 'Stability check failed',
+            title: 'Errore',
+            text: 'Controllo dell\'equilibrio non riuscito. Chiama il tecnico.',
             icon: 'error'
         });
         return false;
@@ -801,8 +801,8 @@ export async function checkMotorsActivation(ws, robotName) {
         console.log("Checking arm motors activation...");
         // Show progress popup with activation checking
         showSyncedPopup(ws, {
-            title: 'Activating arms...',
-            text: 'Waiting for activation',
+            title: 'Attivazione delle braccia…',
+            text: 'Attendi…',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
@@ -863,8 +863,8 @@ export async function checkMotorsActivation(ws, robotName) {
 export async function checkMovementController(ws) {
     return new Promise((resolve) => {
         showSyncedPopup(ws, {
-            title: 'Activating movement...',
-            text: 'Please wait...',
+            title: 'Attivazione dei movimenti…',
+            text: 'Attendi…',
             timer: 5000,
             timerProgressBar: true,
             allowOutsideClick: false,
@@ -887,7 +887,7 @@ export async function checkMovementController(ws) {
  * @returns {WebSocket} Configured WebSocket instance
  */
 export function initializeWebSocket(state, updateUI) {
-    const socket = new WebSocket('ws://localhost:3000');
+    const socket = new WebSocket(`ws://${location.host}`);   // TEST COPY: was ws://localhost:3000
     
     socket.onopen = () => {
         console.log('WebSocket connected');

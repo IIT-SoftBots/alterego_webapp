@@ -113,8 +113,8 @@ async function stopRobot(ws, attemptId) {
 
     // Popup - Wait nodes have been killed
     await showSyncedPopup(ws, {
-        title: 'Stop Robot',
-        text: "Robot is deactivating. Please wait...",
+        title: 'Spegnimento del robot',
+        text: "Il robot si sta disattivando. Attendi…",
         icon: 'warning',
         showCancelButton: false,
         allowOutsideClick: false,
@@ -136,8 +136,8 @@ async function deactivateRobot(ws) {
     
     // Popup - Wait nodes have been killed
     await showSyncedPopup(ws, {
-        title: 'Stop Robot',
-        text: "Robot is deactivating. Please wait...",
+        title: 'Spegnimento del robot',
+        text: "Il robot si sta disattivando. Attendi…",
         icon: 'warning',
         showCancelButton: false,
         allowOutsideClick: false,
@@ -251,7 +251,9 @@ export async function standUpProcedures(ws, robotName, attemptId) {
 
     // Send to Target Location
     logStartupEvent(attemptId, 'startup.service', { stage: 'target_location', outcome: 'dispatched' });
-    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`,
+    // The goal used to be lost: "rostopic pub -1" stays connected ~3 s, and nav2points subscribes later than that.
+    // Wait (up to 120 s, on the base) until nav2points listens and move_base runs, then publish.
+    sendCommand(`${ROS_COMMANDS.SETUP} && export ROBOT_NAME=${robotName} && for i in $(seq 120); do rostopic info /${robotName}/target_location 2>/dev/null | sed -n '/Subscribers:/,$p' | grep -q '/' && timeout 3 rostopic echo -n1 /${robotName}/move_base/status >/dev/null 2>&1 && break; sleep 1; done; rostopic pub -1 /${robotName}/target_location std_msgs/String "data: '${LAUNCH_COMMANDS.TARGET_LOC}'"`,
         { attemptId, stage: 'target_location' });
     await new Promise(r => setTimeout(r, 4000));
 
@@ -409,6 +411,7 @@ export async function robotPowerOnClick(ws, state, robotName, attemptId = newSta
     // Activate Robot Core nodes and moves backward
     if (!(await activateRobotProcedures(ws, robotName, attemptId))){
         logStartupEvent(attemptId, 'startup.failed', { stage: 'activate_robot', pipelineState: state.pipelineState });
+        showLoading(false);   // TEST COPY: the overlay stayed on forever after a failed start
         return false;
     }
     
@@ -419,6 +422,7 @@ export async function robotPowerOnClick(ws, state, robotName, attemptId = newSta
     // Activate all the rest of nodes 
     if (!(await standUpProcedures(ws, robotName, attemptId))){
         logStartupEvent(attemptId, 'startup.failed', { stage: 'stand_up', pipelineState: state.pipelineState });
+        showLoading(false);   // TEST COPY: the overlay stayed on forever after a failed start
         return false;
     }         
     
@@ -567,8 +571,8 @@ export async function restartAuto(ws, state, robotName) {
 
     // Popup - Info to auto restart
     await showSyncedPopup(ws, {
-        title: 'Restart Work',
-        text: "Pay attention! In a few time the system will move back and activate the robot",
+        title: 'Il robot riparte',
+        text: "Attenzione! Tra poco il robot si sposterà indietro e si riattiverà.",
         icon: 'warning',
         showCancelButton: false,
         allowOutsideClick: false,
@@ -617,8 +621,8 @@ export async function overrideInitRobotState(ws, state){
     }
 
     await showSyncedPopup(ws, {
-        title: 'Initialization',
-        text: 'State is initializing. Please wait...',
+        title: 'Avvio',
+        text: 'Preparazione in corso. Attendi…',
         icon: 'warning',
         showCancelButton: false,
         allowOutsideClick: false,

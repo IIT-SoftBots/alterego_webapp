@@ -12,8 +12,8 @@ export async function handlePowerButtonClick(ws, state) {
         if (!isRemoteComputerOnline) {
             // Mostra errore se non connesso
             const popupData = {
-                title: 'ERROR',
-                text: 'Base computer not connected',
+                title: 'Errore',
+                text: 'Il computer del robot (base) non risponde. Aspetta un minuto e riprova.',
                 icon: 'error'
             };
             
@@ -28,7 +28,7 @@ export async function handlePowerButtonClick(ws, state) {
         //if (!isDesktopOnline) {
         //    // Mostra errore se non connesso
         //    const popupData = {
-        //        title: 'ERROR',
+        //        title: 'Errore',
         //        text: 'Desktop computer not connected',
         //        icon: 'error'
         //    };
@@ -122,7 +122,7 @@ export async function handlePowerButtonClick(ws, state) {
         ws.send(JSON.stringify({
             type: 'popup',
             data: {
-                title: 'Error',
+                title: 'Errore',
                 text: error.message,
                 icon: 'error'
             }

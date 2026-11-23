@@ -99,13 +99,13 @@ export class UnlockClickMonitor {
 
              // First popup - Global warning
             const warnAnsw = await showSyncedPopup(this.websocket, {
-                title: 'Unlock Screen',
-                text: "Do you want to unlock the screen?",
+                title: 'Sblocca lo schermo',
+                text: "Vuoi sbloccare lo schermo?",
                 icon: 'warning',
-                showCancelButton: true,
+                showCancelButton: true, cancelButtonText: 'Annulla',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
-                confirmButtonText: 'Yes'
+                confirmButtonText: 'Sì'
             });
             
             if (!warnAnsw) return false;

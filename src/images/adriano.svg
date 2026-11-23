@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" role="img" aria-label="Adriano">
+  <defs>
+    <radialGradient id="head" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e6e8ec"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" x2="1">
+      <stop offset="0" stop-color="#e9ebef"/>
+      <stop offset=".5" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e3e6eb"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- shadow -->
+  <ellipse cx="120" cy="290" rx="92" ry="8" fill="#000" opacity=".12"/>
+
+  <!-- wheels -->
+  <rect x="22" y="222" width="34" height="64" rx="14" fill="#2b2b2b"/>
+  <rect x="184" y="222" width="34" height="64" rx="14" fill="#2b2b2b"/>
+  <g stroke="#444" stroke-width="2">
+    <path d="M26 236h26M26 250h26M26 264h26M26 278h26"/>
+    <path d="M188 236h26M188 250h26M188 264h26M188 278h26"/>
+  </g>
+
+  <!-- red base -->
+  <path d="M48 232 Q120 214 192 232 L198 270 Q120 288 42 270 Z" fill="#d7263d"/>
+  <path d="M70 236 Q120 226 170 236 L172 256 Q120 266 68 256 Z" fill="#fff" opacity=".9"/>
+
+  <!-- body (hourglass) -->
+  <path d="M72 132 Q120 122 168 132 L150 176 Q146 196 160 232 Q120 244 80 232 Q94 196 90 176 Z" fill="url(#body)" stroke="#d5d9df" stroke-width="1.5"/>
+  <!-- yellow belt -->
+  <path d="M90 170 Q120 178 150 170 L148 184 Q120 191 92 184 Z" fill="#f2b51c"/>
+  <!-- front strip -->
+  <rect x="115" y="168" width="10" height="68" rx="3" fill="#f4f5f7" stroke="#cfd3d9"/>
+  <!-- red chest band -->
+  <path d="M60 120 Q120 104 180 120 L170 150 Q120 162 70 150 Z" fill="#d7263d"/>
+
+  <!-- shoulders -->
+  <rect x="64" y="108" width="112" height="16" rx="6" fill="#2b2b2b"/>
+
+  <!-- left arm -->
+  <g>
+    <rect x="34" y="104" width="30" height="26" rx="4" fill="#2b2b2b"/>
+    <rect x="38" y="128" width="22" height="18" rx="4" fill="#f4f5f7" stroke="#cfd3d9"/>
+    <circle cx="49" cy="137" r="3" fill="#cfd3d9"/>
+    <rect x="34" y="144" width="30" height="26" rx="4" fill="#2b2b2b"/>
+    <rect x="38" y="168" width="22" height="16" rx="4" fill="#f4f5f7" stroke="#cfd3d9"/>
+    <rect x="35" y="182" width="28" height="22" rx="4" fill="#2b2b2b"/>
+    <path d="M38 204 l-2 14 M46 205 l-1 16 M54 205 l1 15 M61 204 l3 12" stroke="#2b2b2b" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <!-- right arm -->
+  <g>
+    <rect x="176" y="104" width="30" height="26" rx="4" fill="#2b2b2b"/>
+    <rect x="180" y="128" width="22" height="18" rx="4" fill="#f4f5f7" stroke="#cfd3d9"/>
+    <circle cx="191" cy="137" r="3" fill="#cfd3d9"/>
+    <rect x="176" y="144" width="30" height="26" rx="4" fill="#2b2b2b"/>
+    <rect x="180" y="168" width="22" height="16" rx="4" fill="#f4f5f7" stroke="#cfd3d9"/>
+    <rect x="177" y="182" width="28" height="22" rx="4" fill="#2b2b2b"/>
+    <path d="M179 204 l-3 12 M186 205 l-1 15 M194 205 l1 16 M202 204 l2 14" stroke="#2b2b2b" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- neck -->
+  <rect x="108" y="98" width="24" height="14" rx="4" fill="#3a3a3a"/>
+
+  <!-- head -->
+  <ellipse cx="120" cy="58" rx="54" ry="50" fill="url(#head)" stroke="#d5d9df" stroke-width="1.5"/>
+  <!-- speaker dots -->
+  <g fill="#9aa0a8">
+    <circle cx="104" cy="18" r="1.6"/><circle cx="112" cy="16" r="1.6"/><circle cx="120" cy="15" r="1.6"/><circle cx="128" cy="16" r="1.6"/><circle cx="136" cy="18" r="1.6"/>
+    <circle cx="100" cy="25" r="1.6"/><circle cx="108" cy="23" r="1.6"/><circle cx="116" cy="22" r="1.6"/><circle cx="124" cy="22" r="1.6"/><circle cx="132" cy="23" r="1.6"/><circle cx="140" cy="25" r="1.6"/>
+    <circle cx="112" cy="29" r="1.6"/><circle cx="120" cy="28" r="1.6"/><circle cx="128" cy="29" r="1.6"/>
+  </g>
+  <!-- eyebrows -->
+  <rect x="88" y="40" width="22" height="6" rx="3" fill="#f7f7f8" stroke="#c9cdd3"/>
+  <rect x="130" y="40" width="22" height="6" rx="3" fill="#f7f7f8" stroke="#c9cdd3"/>
+  <!-- eyes -->
+  <ellipse cx="99" cy="60" rx="10" ry="12" fill="#1f2a3a"/>
+  <ellipse cx="141" cy="60" rx="10" ry="12" fill="#1f2a3a"/>
+  <ellipse cx="96" cy="56" rx="3" ry="3.5" fill="#6b84a8" opacity=".7"/>
+  <ellipse cx="138" cy="56" rx="3" ry="3.5" fill="#6b84a8" opacity=".7"/>
+  <!-- LED mouth -->
+  <path d="M100 80 Q120 94 140 80 Q138 89 120 92 Q102 89 100 80 Z" fill="#0f1a2a"/>
+  <g filter="url(#glow)" stroke="#5fd0ff" stroke-width="2.2" stroke-linecap="round">
+    <path d="M106 83v4 M110 84v5 M114 85v5 M118 85.5v5 M122 85.5v5 M126 85v5 M130 84v5 M134 83v4"/>
+    <path d="M101 81 Q120 95 139 81" fill="none" stroke-width="2"/>
+  </g>
+</svg>

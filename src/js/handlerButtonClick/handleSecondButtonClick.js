@@ -21,13 +21,13 @@ export async function handleSecondButtonClick(ws, state, robotName) {
 
             // First popup - Global warning
             const warnAnsw = await showSyncedPopup(ws, {
-                title: 'Power Off',
-                text: "The system will deactivate the robot and power off now. Are you sure?",
+                title: 'Spegni il robot',
+                text: "Il robot verrà disattivato e i computer si spegneranno. Vuoi continuare?",
                 icon: 'warning',
-                showCancelButton: true,
+                showCancelButton: true, cancelButtonText: 'Annulla',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
-                confirmButtonText: 'OK, Power Off'
+                confirmButtonText: 'Sì, spegni'
             });
             
             const shutdownId = newStartupAttemptId();
@@ -46,13 +46,13 @@ export async function handleSecondButtonClick(ws, state, robotName) {
         else {
             // Clicked to Go Home
             const warnAnsw = await showSyncedPopup(ws, {
-                title: 'Home Position',
-                text: "The system will navigate towards its home now. Are you sure?",
+                title: 'Torna in base',
+                text: "Il robot andrà da solo verso la base di ricarica. Vuoi continuare?",
                 icon: 'warning',
-                showCancelButton: true,
+                showCancelButton: true, cancelButtonText: 'Annulla',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
-                confirmButtonText: 'OK, go Home'
+                confirmButtonText: 'Sì, torna in base'
             });
             
             if (!warnAnsw) return;

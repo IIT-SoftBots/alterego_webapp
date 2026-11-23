@@ -1,8 +1,11 @@
 body {
-    background-image: url('../images/background.jpeg');
+    /* TEST COPY: plain light background instead of the photo */
+    background-color: #eef2f7;
+    /* faded drawing of Adriano behind everything + light gradient */
+    background-image: linear-gradient(165deg, #f7f9fc 0%, #e6ecf4 55%, #d7e1ee 100%);
+    background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    background-size: cover;
     min-height: 100vh;
     margin: 0;
     display: flex;
@@ -292,3 +295,98 @@ body {
         font-size: clamp(1rem, 3vw, 1.5rem);
     }
 }
+/* ===== TEST COPY: pulsante "Controlla il robot" e finestra di controllo ===== */
+.debug-button {
+    width: 100%; min-height: 72px; margin-top: 16px; padding: 0 20px; box-sizing: border-box;
+    border: none; border-radius: 15px; background: #4f6e90; color: #fff;
+    font-size: clamp(1.3rem, 4vw, 1.8rem); font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,.15); transition: background .2s ease, transform .1s ease;
+}
+.debug-button .wrench-icon { width: 34px; height: 34px; flex-shrink: 0; }
+.debug-button:hover  { background: #3f5a77; }
+.debug-button:active { transform: scale(.97); }
+/* the docking icon stays next to the status rows, not over the button */
+.status-panel .icon-container { top: 95px; }
+.status-panel .status-item { padding-right: 76px; }   /* text never under the charging icon */
+.status-content h3 { font-size: 1.6rem; }
+
+/* loading overlay with a sentence */
+.loading-overlay { flex-direction: column; gap: 20px; }
+.loading-overlay .loading-spinner { width: 70px; height: 70px; border-width: 7px; }
+.loading-text { color: #fff; font: 700 clamp(1.2rem, 4vw, 1.8rem) sans-serif; text-align: center; padding: 0 20px;
+    text-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.ts-popup .swal2-title { font-size: 34px !important; }
+.ts-popup .swal2-confirm { font-size: 24px !important; padding: 14px 40px !important; border-radius: 12px !important; }
+.ts-wrap { text-align: left; max-height: 68vh; overflow-y: auto; }
+.ts-summary { border-radius: 14px; padding: 18px 20px; font-size: 24px; font-weight: 700; margin-bottom: 16px; line-height: 1.35; }
+.ts-summary.ok   { background: #dcfce7; color: #166534; }
+.ts-summary.ko   { background: #fee2e2; color: #991b1b; }
+.ts-summary.info { background: #fef3c7; color: #92400e; }
+.ts-summary.warn { background: #ffedd5; color: #9a3412; }
+.ts-summary small { display: block; font-size: 19px; font-weight: 500; margin-top: 6px; }
+.ts-row { display: flex; align-items: center; gap: 16px; padding: 16px 14px; border-bottom: 1px solid #e5e7eb; min-height: 64px; }
+.ts-row.down { background: #fef2f2; border-radius: 10px; }
+.ts-dot { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; }
+.ts-name { flex: 1; font-size: 23px; font-weight: 600; color: #111827; }
+.ts-state { font-size: 21px; font-weight: 700; text-align: right; white-space: nowrap; }
+.ts-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            font-size: 18px; color: #6b7280; margin-top: 18px; }
+.ts-refresh { border: none; border-radius: 12px; padding: 14px 26px; background: #4f6e90; color: #fff;
+            font-size: 22px; font-weight: 700; cursor: pointer; }
+.ts-row { flex-direction: column; align-items: stretch !important; justify-content: center; gap: 0; min-height: 0; padding: 14px; }
+.ts-line { display: flex; align-items: center; gap: 16px; }
+.ts-action { margin-top: 12px; padding-left: 42px; }
+.ts-restart { border: none; border-radius: 12px; padding: 14px 30px; background: #e25656; color: #fff;
+            font-size: 22px; font-weight: 700; cursor: pointer; }
+.ts-confirm { background: #fff; border: 2px solid #e25656; border-radius: 12px; padding: 14px 16px; font-size: 20px; color: #374151; }
+.ts-confirm-buttons { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.ts-yes { border: none; border-radius: 12px; padding: 14px 26px; background: #e25656; color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; }
+.ts-no  { border: none; border-radius: 12px; padding: 14px 26px; background: #e5e7eb; color: #374151; font-size: 22px; font-weight: 700; cursor: pointer; }
+.ts-busy { font-size: 20px; font-weight: 700; color: #92400e; }
+.ts-tech { font-size: 20px; font-weight: 700; color: #b91c1c; }
+.ts-refresh:disabled { background: #ccc; cursor: not-allowed; }
+.ts-name { font-size: 20px; }
+.ts-state { font-size: 18px; }
+.ts-summary { font-size: 21px; }
+
+/* TEST COPY: robot name under the logo */
+.robot-name {
+    text-align: center; margin: 1.2rem auto 1rem; line-height: 1; cursor: default; user-select: none;
+    font: 800 clamp(3rem, 10vw, 5rem) sans-serif; letter-spacing: .06em;
+    color: #4f6e90;
+}
+
+/* TEST COPY: header = ADRIANO (plain text, robot red) + drawing on the right; volume button moved to the left */
+.robot-header { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0.5rem auto 0.7rem;
+    user-select: none; cursor: default; }
+.robot-title { font: 800 clamp(2.4rem, 10vw, 4rem)/1 Ubuntu, "Segoe UI", Arial, sans-serif; letter-spacing: .1em; color: #d7263d; }
+.robot-pic { display: block; height: clamp(80px, 19vw, 130px); width: auto; -webkit-user-drag: none; }
+.volume-overlay { right: auto !important; left: 0; margin-left: 10px !important; margin-right: 0 !important; }
+
+/* TEST COPY: "Adriano" lettering image at the top */
+.robot-wordmark { display: block; width: clamp(160px, 46vw, 340px); height: auto; margin: 0.8rem auto 0.6rem; user-select: none; -webkit-user-drag: none; }
+
+/* TEST COPY: robot screen is 480x800 (portrait): everything must fit without scrolling */
+@media screen and (max-width: 560px) {
+    .button-container { padding: 0.4rem 0.8rem; min-height: 0; }
+    #button-grid, #status-panel { width: 100%; }
+    .robot-wordmark { margin: 0.5rem auto 0.6rem; }
+    .volume-overlay { margin-right: 10px; margin-top: 10px; font-size: 20pt; }
+    .button-grid { width: 100%; aspect-ratio: auto; gap: 0.8rem; padding: 0; }
+    .control-button { min-height: 168px; font-size: 1.9rem; }
+    .control-button i { font-size: 2.6rem; margin-bottom: 0.4rem; }
+    .status-panel { width: 100%; margin-top: 0.9rem; padding: 14px 16px !important; }
+    .status-content h3 { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .status-item { font-size: 14pt; min-height: 26px; margin-bottom: 0.2rem; }
+    .status-panel .icon-container { top: 70px; right: 16px; font-size: 44px; }
+    .status-panel .status-item { padding-right: 60px; }
+    .debug-button { min-height: 60px; margin-top: 10px; font-size: 1.4rem; }
+}
+
+/* TEST COPY: "Controlla il robot" and volume on the same row, at the bottom of the status panel */
+.panel-actions { display: flex; gap: 10px; margin-top: 12px; }
+.panel-actions .debug-button { flex: 1; margin-top: 0; }
+.volume-btn { flex: 0 0 auto; width: 72px; min-height: 60px; border: none; border-radius: 15px; cursor: pointer;
+    background: #e5e7eb; color: #4f6e90; font-size: 28px; box-shadow: 0 4px 6px rgba(0,0,0,.1); }
+.volume-btn:active { transform: scale(.96); }

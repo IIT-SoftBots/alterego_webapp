@@ -25,6 +25,9 @@ console.log(`\nCurrent Username: ${currentUsername} \nRemote Username: ${remoteU
 app.use(bodyParser.json());
 app.use(express.json());
 
+// troubleshoot check / restart routes (John, 2026-11-23)
+require('./troubleshoot-routes')(app);
+
 app.post('/api/startup-log', (req, res) => {
     const { attemptId, event, clientTime, stage, outcome, pipelineState, isPowered, detail } = req.body || {};
     if (typeof attemptId !== 'string' || !/^[a-z0-9-]{1,40}$/i.test(attemptId) ||

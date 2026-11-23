@@ -87,17 +87,17 @@ function updateMainBtn(show){
     const mainBtn = document.getElementById('mainBtn');
 
     if (show == 'start_robot'){
-        mainBtn.innerHTML = '<i class="fas fa-circle-play"></i><span>Start Robot</span>';        
+        mainBtn.innerHTML = '<i class="fas fa-circle-play"></i><span>Accendi robot</span>';        
         mainBtn.classList.remove('play');
         mainBtn.classList.remove('pause');
     }
     else if (show == 'pause'){
-        mainBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+        mainBtn.innerHTML = '<i class="fas fa-pause"></i><span>Pausa</span>';
         mainBtn.classList.add('play'); 
         mainBtn.classList.remove('pause');       
     }
     else if (show == 'play'){
-        mainBtn.innerHTML = '<i class="fas fa-play"></i><span>Play</span>';
+        mainBtn.innerHTML = '<i class="fas fa-play"></i><span>Riprendi</span>';
         mainBtn.classList.add('pause');
         mainBtn.classList.remove('play');
     }
@@ -108,11 +108,11 @@ function updateSecondBtn(show){
     const secondBtn = document.getElementById('secondBtn');
 
     if (show == 'power_off'){
-        secondBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Power Off</span>';  
+        secondBtn.innerHTML = '<i class="fas fa-power-off"></i><span>Spegni</span>';  
         secondBtn.classList.remove('home');      
     }
     else if (show == 'home'){
-        secondBtn.innerHTML = '<i class="fas fa-home"></i><span>Home</span>';
+        secondBtn.innerHTML = '<i class="fas fa-home"></i><span>Torna in base</span>';
         secondBtn.classList.add('home');        
     }
 }
@@ -134,7 +134,7 @@ export function updateBatteryGraphics(powerAlert, isCharging, isDocked, batteryL
     const dockingStation = document.getElementById('dockingStation');
     const dockingIcon = document.getElementById('dockingIcon');
 
-    batteryIcon.innerHTML = "Battery ";        
+    batteryIcon.innerHTML = "Batteria ";        
 
     if (powerAlert) {
         batteryStatus.style.backgroundColor = UI_STATES.BATTERY_ALERT.color;
@@ -220,7 +220,7 @@ export async function setVolume() {
 // Funzione per l'azione Settings
 export function settingsAction() {
     // Esempio di azione: mostra un messaggio
-    alert('Settings... TODO');
+    alert('Impostazioni: non ancora disponibili.');
     
     closeAdminMenu(); // Chiude il popup dopo l'azione
 }

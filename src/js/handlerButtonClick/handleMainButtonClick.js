@@ -23,8 +23,8 @@ export async function handleMainButtonClick(ws, state, robotName) {
         if (!isRemoteComputerOnline) {
             // Mostra errore se non connesso
             const popupData = {
-                title: 'ERROR',
-                text: 'Base computer not connected',
+                title: 'Errore',
+                text: 'Il computer del robot (base) non risponde. Aspetta un minuto e riprova.',
                 icon: 'error'
             };
             
@@ -71,13 +71,13 @@ export async function handleMainButtonClick(ws, state, robotName) {
             
             // First popup - Global warning
             const warnAnsw = await showSyncedPopup(ws, {
-                title: 'Start Robot',
-                text: "The system will move back and activate the robot now. Are you sure?",
+                title: 'Accendi il robot',
+                text: "Il robot si sposterà un po' indietro e si attiverà. Vuoi continuare?",
                 icon: 'warning',
-                showCancelButton: true,
+                showCancelButton: true, cancelButtonText: 'Annulla',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
-                confirmButtonText: 'OK, Activate Robot'
+                confirmButtonText: 'Sì, accendi'
             });
             
             logStartupEvent(attemptId, 'button.confirm', { outcome: warnAnsw ? 'accepted' : 'cancelled' });
@@ -116,7 +116,7 @@ export async function handleMainButtonClick(ws, state, robotName) {
         ws.send(JSON.stringify({
             type: 'popup',
             data: {
-                title: 'Error',
+                title: 'Errore',
                 text: error.message,
                 icon: 'error'
             }
