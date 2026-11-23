@@ -171,3 +171,11 @@ Contributions are welcome! Please submit a pull request or open an issue for any
 
 ## License
 This project is licensed under the BSD-3 License. See the LICENSE file for more details.
+
+## Supporting Material
+
+You can find some project’s supporting material available in the team’s OneDrive space:
+
+[Open the OneDrive folder](https://istitutoitalianotecnologia-my.sharepoint.com/shared?id=%2Fsites%2FAlterEGO%2FDocumenti%20condivisi%2FTechnical%20Documentation%2Falterego%5Fwebapp&listurl=https%3A%2F%2Fistitutoitalianotecnologia%2Esharepoint%2Ecom%2Fsites%2FAlterEGO%2FDocumenti%20condivisi&viewid=d4d88b95%2D6a10%2D4018%2D8b26%2D629bec919fa6)
+
+This material includes a PowerPoint presentation summarizing the workflow implemented in the webapp.
