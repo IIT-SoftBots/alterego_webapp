@@ -24,7 +24,19 @@
             <i class="fas fa-close"></i>
             <span>Chiudi app</span>
         </button>
-    </div>    
+
+        <!-- TEST COPY: maintenance mode (visual only, sends nothing to the robot) -->
+        <button id="maintenanceBtn" class="control-button maintenance-button">
+            <i class="fas fa-screwdriver-wrench"></i>
+            <span>Manutenzione</span>
+        </button>
+    </div>
+</div>
+
+<!-- TEST COPY: full-screen sign while maintenance is on; 3 quick taps on it open the technical menu -->
+<div id="maintenanceOverlay" class="maintenance-overlay">
+    <i class="fas fa-screwdriver-wrench"></i>
+    <div class="maintenance-text">In manutenzione</div>
 </div>
 
 <div id="loadingOverlay" class="loading-overlay">

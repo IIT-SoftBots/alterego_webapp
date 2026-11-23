@@ -390,3 +390,19 @@ body {
 .volume-btn { flex: 0 0 auto; width: 72px; min-height: 60px; border: none; border-radius: 15px; cursor: pointer;
     background: #e5e7eb; color: #4f6e90; font-size: 28px; box-shadow: 0 4px 6px rgba(0,0,0,.1); }
 .volume-btn:active { transform: scale(.96); }
+
+/* TEST COPY: maintenance mode - full-screen sign above the normal UI (the technical menu stays above it) */
+.maintenance-button { background-color: #f3bc57; }
+.maintenance-button.on { background-color: #22c55e; }
+.maintenance-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;   /* same layer as the lock overlay, later in the page = on top */
+    flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+    background: repeating-linear-gradient(45deg, #f3bc57 0 40px, #1f2937 40px 80px);
+    user-select: none; cursor: default;
+}
+.maintenance-overlay i { font-size: 120px; color: #fff; background: #d7263d; border-radius: 50%; padding: 36px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+.maintenance-text { background: #fff; color: #d7263d; border-radius: 20px; padding: 28px 24px; margin: 0 20px; text-align: center;
+    font: 800 clamp(2.2rem, 9.5vw, 4.6rem)/1.1 Ubuntu, "Segoe UI", Arial, sans-serif; letter-spacing: .02em; text-transform: uppercase;
+    box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+#popupOverlay { z-index: 1001; }   /* menu backdrop above the sign, so a tap outside the menu still closes it (popups come later in the page) */

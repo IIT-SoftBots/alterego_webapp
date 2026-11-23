@@ -20,6 +20,16 @@ export function updateUI(state) {
     const powerStatus = document.getElementById('powerStatus');
     const systemStatus = document.getElementById('systemStatus');
 
+    // TEST COPY: maintenance mode (shared server state, visual only)
+    const maintenance = !!(state.uiState && state.uiState.maintenance);
+    const maintenanceOverlay = document.getElementById('maintenanceOverlay');
+    const maintenanceBtn = document.getElementById('maintenanceBtn');
+    if (maintenanceOverlay) maintenanceOverlay.style.display = maintenance ? 'flex' : 'none';
+    if (maintenanceBtn) {
+        maintenanceBtn.classList.toggle('on', maintenance);
+        maintenanceBtn.querySelector('span').textContent = maintenance ? 'Fine manutenzione' : 'Manutenzione';
+    }
+
     // Aggiorna stato power
     if (state.isPowered && !batteryMonitor.getPowerAlert()) {
         powerStatus.style.backgroundColor = UI_STATES.POWER_ON.color;

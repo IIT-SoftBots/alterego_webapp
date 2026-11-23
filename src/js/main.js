@@ -142,6 +142,14 @@ async function initApp() {
     volumeBtn.addEventListener('click',  () => setVolume());
     closeBtn.addEventListener('click',  () => clickMonitorClose(monitor, unlockMonitor));
 
+    // TEST COPY: maintenance mode. Only changes the shared page state; no command goes to the robot.
+    new ClickMonitor(ws, document.getElementById('maintenanceOverlay'));   // 3 quick taps on the sign open the technical menu
+    document.getElementById('maintenanceBtn').addEventListener('click', () => {
+        const maintenance = !(state.uiState && state.uiState.maintenance);
+        ws.send(JSON.stringify({ type: 'stateUpdate', data: { uiState: { maintenance } } }));
+        closeAdminMenu();
+    });
+
     // Gestione del click fuori dal popup per chiuderlo
     document.getElementById('popupOverlay').addEventListener('click', function(e) {
         if (e.target === this) {
